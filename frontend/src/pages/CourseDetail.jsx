@@ -24,13 +24,27 @@ const CourseDetail = () => {
   }, [id])
 
   const fetchCourseDetails = async () => {
+    setLoading(true)
+
+    // Force timeout after 10 seconds to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        setLoading(false)
+        toast.error('Loading timed out - check connection')
+      }
+    }, 10000)
+
     try {
       const [courseRes, enrollmentRes, progressRes, reviewsRes] = await Promise.all([
-        api.get(`/courses/${id}`),
-        api.get(`/enrollments/${id}`).catch(() => ({ data: null })),
-        api.get(`/progress/course/${id}`).catch(() => ({ data: [] })),
-        api.get(`/reviews/course/${id}`)
+        api.get(`/courses/${id}`, { timeout: 8000 }),
+        api.get(`/enrollments/${id}`, { timeout: 8000 }).catch(() => ({ data: null })),
+        api.get(`/progress/course/${id}`, { timeout: 8000 }).catch(() => ({ data: [] })),
+        api.get(`/reviews/course/${id}`, { timeout: 8000 })
       ])
+
+      // Clear timeout since we succeeded
+      clearTimeout(timeoutId)
+
       setCourse(courseRes.data)
       setEnrollment(enrollmentRes.data)
       setProgress(progressRes.data)
@@ -39,6 +53,7 @@ const CourseDetail = () => {
       console.error('Failed to fetch course details', error)
       toast.error('Failed to load course details')
     } finally {
+      clearTimeout(timeoutId)
       setLoading(false)
     }
   }
@@ -150,7 +165,32 @@ const CourseDetail = () => {
 
           {/* Lessons */}
           <Card>
-            <h2 className="text-2xl font-bold mb-4">Course Content</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold">Course Content</h2>
+
+              {/* Lesson Search */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search lessons..."
+                  className="pl-3 pr-8 py-1 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                  onChange={(e) => {
+                    // Simple local filter for now
+                    const query = e.target.value.toLowerCase();
+                    const lessonDivs = document.querySelectorAll('.lesson-item');
+                    lessonDivs.forEach(div => {
+                      const title = div.getAttribute('data-title').toLowerCase();
+                      if (title.includes(query)) {
+                        div.style.display = 'flex';
+                      } else {
+                        div.style.display = 'none';
+                      }
+                    });
+                  }}
+                />
+              </div>
+            </div>
+
             {enrollment && (
               <div className="mb-4">
                 <div className="flex items-center justify-between text-sm mb-2">
@@ -168,8 +208,9 @@ const CourseDetail = () => {
                 return (
                   <div
                     key={lesson.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer"
+                    className="lesson-item flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
                     onClick={() => enrollment && startLesson(lesson.id)}
+                    data-title={lesson.title}
                   >
                     <div className="flex items-center space-x-3">
                       {isCompleted ? (
@@ -181,13 +222,14 @@ const CourseDetail = () => {
                         <p className="font-medium">
                           {index + 1}. {lesson.title}
                         </p>
-                        <p className="text-sm text-gray-600">{lesson.description}</p>
+                        <p className="text-sm text-gray-600 line-clamp-1">{lesson.description}</p>
                       </div>
                     </div>
                     <Badge variant="primary">{lesson.type}</Badge>
                   </div>
                 )
               })}
+              {course.lessons.length === 0 && <p className="text-gray-500 italic">No lessons added yet.</p>}
             </div>
           </Card>
 

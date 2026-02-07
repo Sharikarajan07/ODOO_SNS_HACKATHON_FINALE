@@ -1,6 +1,6 @@
 import { useAuth } from '../context/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { LogOut, Home, User } from 'lucide-react'
+import { LogOut, Home, User, BookOpen } from 'lucide-react'
 import Sidebar from './Sidebar'
 
 const Layout = ({ children, title }) => {
@@ -72,6 +72,13 @@ const Layout = ({ children, title }) => {
                 <Home size={20} />
                 <span>Home</span>
               </button>
+              <button
+                onClick={() => navigate('/learner/dashboard')}
+                className="flex items-center space-x-2 text-gray-600 hover:text-indigo-600 transition-colors"
+              >
+                <BookOpen size={20} />
+                <span>Courses</span>
+              </button>
               {user && (
                 <div className="flex items-center space-x-2 text-gray-700">
                   <User size={20} />
@@ -91,13 +98,13 @@ const Layout = ({ children, title }) => {
             </div>
           </div>
         </div>
-      </header>
+      </header >
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      < main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" >
         {children}
-      </main>
-    </div>
+      </main >
+    </div >
   )
 }
 

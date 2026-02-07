@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Button, Badge } from '../components/ui'
-import { ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CheckCircle, Menu, X, PlayCircle, FileText, Image as ImageIcon, Lock } from 'lucide-react'
 import api from '../services/api'
 import { useToast } from '../context/ToastContext'
 
@@ -11,8 +11,10 @@ const LessonPlayer = () => {
   const toast = useToast()
   const [lesson, setLesson] = useState(null)
   const [allLessons, setAllLessons] = useState([])
+  const [progressData, setProgressData] = useState([])
   const [completed, setCompleted] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   // Use a ref to track if component is mounted to prevent state updates on unmount
   const isMounted = useRef(true)
@@ -32,6 +34,10 @@ const LessonPlayer = () => {
 
   useEffect(() => {
     fetchLesson()
+    // On mobile, auto-close sidebar
+    if (window.innerWidth < 768) {
+      setSidebarOpen(false)
+    }
   }, [id])
 
   useEffect(() => {
@@ -43,27 +49,41 @@ const LessonPlayer = () => {
     }, 10000)
 
     return () => clearInterval(interval)
-  }, [lesson]) // Ideally should depend on ID, not full lesson object to avoid re-renders if lesson changes
+  }, [lesson])
 
   const fetchLesson = async () => {
     setLoading(true)
+
+    const timeoutId = setTimeout(() => {
+      if (isMounted.current) {
+        setLoading(false)
+        console.error('Fetch lesson timed out')
+        toast.error('Loading timed out - check connection')
+      }
+    }, 10000)
+
     try {
-      const lessonRes = await api.get(`/lessons/${id}`)
+      // 1. Fetch main lesson
+      const lessonRes = await api.get(`/lessons/${id}`, { timeout: 8000 })
 
       if (!isMounted.current) return
 
       setLesson(lessonRes.data)
+      setLoading(false)
 
+      clearTimeout(timeoutId)
+
+      // 2. Fetch related data
       try {
         const courseId = lessonRes.data.courseId
-        // Fetch all lessons of the course
         const [courseLessonsRes, progressRes] = await Promise.all([
-          api.get(`/lessons/course/${courseId}`),
-          api.get(`/progress/course/${courseId}`)
+          api.get(`/lessons/course/${courseId}`, { timeout: 8000 }),
+          api.get(`/progress/course/${courseId}`, { timeout: 8000 })
         ])
 
         if (isMounted.current) {
           setAllLessons(courseLessonsRes.data)
+          setProgressData(progressRes.data)
           const lessonProgress = progressRes.data.find(p => p.id === parseInt(id))
           setCompleted(lessonProgress?.completed || false)
         }
@@ -72,9 +92,10 @@ const LessonPlayer = () => {
       }
     } catch (error) {
       console.error('Failed to fetch lesson', error)
-      // If lesson not found, we might want to handle it (loading becomes false, lesson is null -> shows "Lesson not found")
-    } finally {
+      toast.error('Failed to load lesson content')
       if (isMounted.current) setLoading(false)
+    } finally {
+      clearTimeout(timeoutId)
     }
   }
 
@@ -86,6 +107,10 @@ const LessonPlayer = () => {
       })
       if (isCompleted && isMounted.current) {
         setCompleted(true)
+        // Update local progress state
+        setProgressData(prev => prev.map(p =>
+          p.id === parseInt(id) ? { ...p, completed: true } : p
+        ))
         toast.success('Lesson marked as complete! 🎉')
       }
     } catch (error) {
@@ -102,7 +127,6 @@ const LessonPlayer = () => {
     if (currentIndex < allLessons.length - 1) {
       navigate(`/lesson/${allLessons[currentIndex + 1].id}`)
     } else {
-      // Last lesson - go back to course
       navigate(`/course/${lesson.courseId}`)
     }
   }
@@ -114,12 +138,11 @@ const LessonPlayer = () => {
     }
   }
 
-  // Memoize the video player to prevent re-renders on every tick
   const VideoPlayer = useMemo(() => {
     if (!lesson || lesson.type !== 'VIDEO') return null
 
     return (
-      <div className="aspect-video bg-black rounded-lg overflow-hidden mb-4 relative group">
+      <div className="aspect-video bg-black rounded-lg overflow-hidden mb-6 relative group border border-gray-800 shadow-2xl">
         {lesson.contentUrl.includes('youtube') || lesson.contentUrl.includes('youtu.be') ? (
           <>
             <iframe
@@ -129,184 +152,196 @@ const LessonPlayer = () => {
               title={lesson.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             />
-            <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-black/50 text-white border-white/50 pointer-events-auto"
-                onClick={() => window.open(lesson.contentUrl, '_blank')}
-              >
-                Watch on YouTube ↗
-              </Button>
-            </div>
           </>
         ) : (
           <video controls className="w-full h-full">
             <source src={lesson.contentUrl} type="video/mp4" />
-            Your browser does not support the video tag.
           </video>
         )}
       </div>
     )
-  }, [lesson?.id, lesson?.contentUrl]) // Only re-render if ID or URL changes
+  }, [lesson?.id, lesson?.contentUrl])
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <p className="text-white">Loading...</p>
+      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center space-y-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+        <p className="text-gray-400">Loading lesson content...</p>
       </div>
     )
   }
 
   if (!lesson) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
         <p className="text-white">Lesson not found</p>
       </div>
     )
   }
 
   const currentIndex = allLessons.findIndex(l => l.id === parseInt(id))
-  const hasNext = currentIndex < allLessons.length - 1
-  const hasPrevious = currentIndex > 0
+  const courseProgress = allLessons.length > 0
+    ? (progressData.filter(p => p.completed).length / allLessons.length) * 100
+    : 0
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Header */}
-      <div className="bg-gray-900 border-b border-gray-800 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="secondary"
-              onClick={() => navigate(`/course/${lesson.course.id}`)}
-            >
-              <ArrowLeft size={16} className="inline mr-2" />
-              Back to Course
-            </Button>
-            <div>
-              <p className="text-gray-400 text-sm">{lesson.course.title}</p>
-              <h1 className="text-xl font-semibold">{lesson.title}</h1>
+    <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
+      {/* Sidebar */}
+      <div
+        className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          } fixed md:relative z-30 w-80 h-full bg-gray-900 border-r border-gray-800 transition-transform duration-300 ease-in-out flex flex-col`}
+      >
+        <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+          <div>
+            <h2 className="font-bold text-gray-200 truncate max-w-[200px]" title={lesson.course?.title}>
+              {lesson.course?.title || 'Course'}
+            </h2>
+            <div className="flex items-center mt-1">
+              <div className="flex-1 h-1 bg-gray-700 rounded-full w-24 mr-2">
+                <div
+                  className="h-1 bg-green-500 rounded-full transition-all duration-500"
+                  style={{ width: `${courseProgress}%` }}
+                />
+              </div>
+              <span className="text-xs text-gray-400">{Math.round(courseProgress)}%</span>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <Badge variant={completed ? 'success' : 'default'}>
-              {completed ? 'Completed' : 'In Progress'}
-            </Badge>
-            {!completed && (
-              <Button onClick={markComplete}>
-                <CheckCircle size={16} className="inline mr-2" />
-                Mark Complete
-              </Button>
-            )}
-            {lesson.allowDownload && (
-              <Button
-                variant="outline"
-                onClick={() => window.open(lesson.contentUrl, '_blank')}
-                className="ml-2"
+          <button onClick={() => setSidebarOpen(false)} className="md:hidden text-gray-400">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {allLessons.map((l, idx) => {
+            const isCurrent = l.id === parseInt(id)
+            const isCompleted = progressData.find(p => p.id === l.id)?.completed
+
+            return (
+              <div
+                key={l.id}
+                onClick={() => navigate(`/lesson/${l.id}`)}
+                className={`flex items-center p-4 cursor-pointer hover:bg-gray-800 transition-colors border-l-4 ${isCurrent ? 'bg-gray-800 border-indigo-500' : 'border-transparent'
+                  }`}
               >
-                Download
-              </Button>
-            )}
-          </div>
+                <div className="mr-3">
+                  {isCompleted ? (
+                    <CheckCircle size={18} className="text-green-500" />
+                  ) : l.type === 'VIDEO' ? (
+                    <PlayCircle size={18} className="text-gray-500" />
+                  ) : l.type === 'IMAGE' ? (
+                    <ImageIcon size={18} className="text-gray-500" />
+                  ) : (
+                    <FileText size={18} className="text-gray-500" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-medium truncate ${isCurrent ? 'text-white' : 'text-gray-400'}`}>
+                    {idx + 1}. {l.title}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">{l.duration} min</p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="p-4 border-t border-gray-800">
+          <Button
+            variant="outline"
+            className="w-full justify-center border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+            onClick={() => navigate(`/course/${lesson.courseId}`)}
+          >
+            <ArrowLeft size={16} className="mr-2" /> Back to Course
+          </Button>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="bg-gray-900 rounded-lg p-8 mb-6">
-          {/* Content Display */}
-          {VideoPlayer}
-
-          {lesson.type === 'VIDEO' && (lesson.contentUrl.includes('youtube') || lesson.contentUrl.includes('youtu.be')) && (
-            <div className="mb-4 text-center">
-              <p className="text-sm text-gray-400">
-                Video not playing? <a href={lesson.contentUrl} target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:underline">Watch directly on YouTube</a>
-              </p>
-            </div>
-          )}
-
-          {lesson.type === 'DOCUMENT' && (
-            <div className="bg-white text-black p-8 rounded-lg mb-4">
-              {lesson.contentUrl.endsWith('.pdf') ? (
-                <iframe
-                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(lesson.contentUrl)}&embedded=true`}
-                  className="w-full h-screen"
-                  title={lesson.title}
-                  onError={(e) => console.log("Iframe error:", e)}
-                />
-              ) : (
-                <div className="text-center py-20">
-                  <p className="text-xl mb-4">This document cannot be previewed directly.</p>
-                  <Button onClick={() => window.open(lesson.contentUrl, '_blank')}>
-                    Open Document
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {lesson.type === 'IMAGE' && (
-            <div className="mb-4">
-              <img
-                src={lesson.contentUrl}
-                alt={lesson.title}
-                className="w-full rounded-lg"
-              />
-            </div>
-          )}
-
-          {/* Description */}
-          {lesson.description && (
-            <div className="mt-6">
-              <h2 className="text-xl font-semibold mb-2">About this lesson</h2>
-              <p className="text-gray-300">{lesson.description}</p>
-            </div>
-          )}
-
-          {/* Attachments */}
-          {lesson.attachments && lesson.attachments.length > 0 && (
-            <div className="mt-6">
-              <h2 className="text-xl font-semibold mb-2">Attachments</h2>
-              <div className="space-y-2">
-                {lesson.attachments.map((attachment, index) => (
-                  <a
-                    key={index}
-                    href={attachment.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block p-3 bg-gray-800 rounded hover:bg-gray-700 transition-colors"
-                  >
-                    <Badge className="mr-2">{attachment.type}</Badge>
-                    {attachment.url}
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+        {/* Mobile Header */}
+        <div className="md:hidden flex items-center p-4 bg-gray-900 border-b border-gray-800">
+          <button onClick={() => setSidebarOpen(true)} className="mr-4 text-white">
+            <Menu size={24} />
+          </button>
+          <span className="font-semibold truncate">{lesson.title}</span>
         </div>
 
-        {/* Navigation */}
-        <div className="flex items-center justify-between">
-          <Button
-            variant="secondary"
-            onClick={goToPreviousLesson}
-            disabled={!hasPrevious}
-          >
-            <ArrowLeft size={16} className="inline mr-2" />
-            Previous Lesson
-          </Button>
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto bg-gray-950 p-6 md:p-10">
+          <div className="max-w-4xl mx-auto">
+            {/* Header Actions */}
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-2xl md:text-3xl font-bold">{lesson.title}</h1>
+              <div className="flex space-x-3">
+                {!completed && (
+                  <Button onClick={markComplete} className="bg-green-600 hover:bg-green-700 border-none">
+                    <CheckCircle size={18} className="mr-2" /> Mark Complete
+                  </Button>
+                )}
+              </div>
+            </div>
 
-          <div className="text-gray-400">
-            Lesson {currentIndex + 1} of {allLessons.length}
+            {/* Media Player */}
+            {VideoPlayer}
+
+            {lesson.type === 'IMAGE' && (
+              <div className="mb-8 rounded-lg overflow-hidden border border-gray-800">
+                <img src={lesson.contentUrl} alt={lesson.title} className="w-full object-contain max-h-[600px] bg-black" />
+              </div>
+            )}
+
+            {lesson.type === 'DOCUMENT' && (
+              <div className="bg-white text-black p-4 rounded-lg mb-8 h-[80vh]">
+                {lesson.contentUrl.endsWith('.pdf') ? (
+                  <iframe src={`https://docs.google.com/viewer?url=${encodeURIComponent(lesson.contentUrl)}&embedded=true`} className="w-full h-full border-none" />
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <FileText size={48} className="text-gray-400 mb-4" />
+                    <p className="mb-4 text-lg">This document cannot be previewed directly.</p>
+                    <Button onClick={() => window.open(lesson.contentUrl, '_blank')}>Download / Open</Button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Description & Attachments */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+              <div className="lg:col-span-2 space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Description</h3>
+                  <p className="text-gray-400 leading-relaxed">{lesson.description || 'No description provided.'}</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {lesson.attachments && lesson.attachments.length > 0 && (
+                  <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
+                    <h3 className="font-semibold mb-4 flex items-center">
+                      <FileText size={18} className="mr-2 text-indigo-400" /> Resources
+                    </h3>
+                    <div className="space-y-3">
+                      {lesson.attachments.map((att, i) => (
+                        <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="block p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition text-sm text-gray-300 hover:text-white truncate">
+                          {att.url.split('/').pop() || 'Resource Link'}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer Nav */}
+            <div className="mt-12 pt-8 border-t border-gray-800 flex justify-between">
+              <Button variant="secondary" onClick={goToPreviousLesson} disabled={currentIndex === 0} className="bg-gray-900 border-gray-700 text-white hover:bg-gray-800">
+                <ArrowLeft size={16} className="mr-2" /> Previous
+              </Button>
+              <Button onClick={goToNextLesson} className="bg-indigo-600 hover:bg-indigo-700 text-white border-none">
+                {currentIndex === allLessons.length - 1 ? 'Finish Course' : 'Next Lesson'} <ArrowRight size={16} className="ml-2" />
+              </Button>
+            </div>
+
           </div>
-
-          <Button
-            onClick={goToNextLesson}
-            disabled={!hasNext && !completed}
-          >
-            {hasNext ? 'Next Lesson' : 'Back to Course'}
-            <ArrowRight size={16} className="inline ml-2" />
-          </Button>
         </div>
       </div>
     </div>
@@ -314,3 +349,4 @@ const LessonPlayer = () => {
 }
 
 export default LessonPlayer
+

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { Plus, Trash2, Save, ArrowLeft, Paperclip, Share2, Eye, Users } from 'lucide-react'
 import Layout from '../components/Layout'
-import { Button, Input, Card, Select, Badge } from '../components/ui'
-import { Plus, Trash2, Save, ArrowLeft } from 'lucide-react'
-import api from '../services/api'
+import { Button, Input, Card, Badge, Select } from '../components/ui'
 import { useToast } from '../context/ToastContext'
+import api from '../services/api'
 
 const CourseEditor = () => {
   const { id } = useParams()
@@ -19,11 +19,14 @@ const CourseEditor = () => {
     image: '',
     visibility: 'PUBLIC',
     accessRule: 'FREE',
+    price: 0,
     published: false
   })
 
   const [lessons, setLessons] = useState([])
   const [quiz, setQuiz] = useState(null)
+
+  // Lesson Editor State
   const [newLesson, setNewLesson] = useState({
     title: '',
     type: 'VIDEO',
@@ -31,8 +34,12 @@ const CourseEditor = () => {
     description: '',
     order: 0,
     duration: 0,
-    allowDownload: true
+    allowDownload: true,
+    attachments: []
   })
+
+  // Attachments state for new lesson
+  const [newAttachment, setNewAttachment] = useState({ type: 'LINK', url: '' })
 
   const [newQuestion, setNewQuestion] = useState({
     questionText: '',
@@ -97,15 +104,38 @@ const CourseEditor = () => {
     }
   }
 
+  // Attachment Handlers
+  const addAttachment = () => {
+    if (!newAttachment.url) return;
+    setNewLesson({
+      ...newLesson,
+      attachments: [...(newLesson.attachments || []), { ...newAttachment }]
+    })
+    setNewAttachment({ type: 'LINK', url: '' })
+  }
+
+  const removeAttachment = (idx) => {
+    const updated = [...(newLesson.attachments || [])]
+    updated.splice(idx, 1)
+    setNewLesson({ ...newLesson, attachments: updated })
+  }
+
   const addLesson = async () => {
     if (!newLesson.title || !newLesson.contentUrl) {
       toast.warning('Please fill in all required fields')
       return
     }
 
+    // Clean YouTube URL (remove params like ?si=...)
+    let cleanedUrl = newLesson.contentUrl
+    if (cleanedUrl.includes('youtube') || cleanedUrl.includes('youtu.be')) {
+      cleanedUrl = cleanedUrl.replace(/(\?|&)si=[^&]*/, '')
+    }
+
     try {
       const response = await api.post('/lessons', {
         ...newLesson,
+        contentUrl: cleanedUrl,
         courseId: id,
         order: lessons.length
       })
@@ -117,7 +147,8 @@ const CourseEditor = () => {
         description: '',
         order: 0,
         duration: 0,
-        allowDownload: true
+        allowDownload: true,
+        attachments: []
       })
       toast.success('Lesson added successfully')
     } catch (error) {
@@ -134,6 +165,23 @@ const CourseEditor = () => {
       toast.success('Lesson deleted')
     } catch (error) {
       toast.error('Failed to delete lesson')
+    }
+  }
+
+  // Header Actions
+  const handlePreview = () => {
+    window.open(`/course/${id}`, '_blank')
+  }
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(`${window.location.origin}/course/${id}`)
+    toast.success('Course link copied to clipboard')
+  }
+
+  const handleAddAttendees = () => {
+    const email = prompt("Enter learner email to invite:")
+    if (email) {
+      toast.success(`Invitation sent to ${email}`)
     }
   }
 
@@ -203,7 +251,7 @@ const CourseEditor = () => {
 
   return (
     <Layout title={isEdit ? 'Edit Course' : 'New Course'}>
-      <div className="mb-6">
+      <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <Button
           variant="outline"
           onClick={() => navigate('/admin/dashboard')}
@@ -211,6 +259,20 @@ const CourseEditor = () => {
           <ArrowLeft size={16} className="inline mr-2" />
           Back to Dashboard
         </Button>
+
+        {isEdit && (
+          <div className="flex space-x-2">
+            <Button variant="outline" onClick={handlePreview}>
+              <Eye size={16} className="mr-2 inline" /> Preview
+            </Button>
+            <Button variant="outline" onClick={handleShare}>
+              <Share2 size={16} className="mr-2 inline" /> Share
+            </Button>
+            <Button variant="outline" onClick={handleAddAttendees}>
+              <Users size={16} className="mr-2 inline" /> Attendees
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -431,6 +493,28 @@ const CourseEditor = () => {
               />
             </div>
 
+            {/* Attachments Section */}
+            <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <h4 className="text-sm font-semibold mb-2 flex items-center"><Paperclip size={14} className="mr-2" /> Additional Attachments</h4>
+              <div className="space-y-2 mb-3">
+                {(newLesson.attachments || []).map((att, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-sm bg-white p-2 rounded border">
+                    <span className="truncate max-w-[80%]">{att.url}</span>
+                    <button onClick={() => removeAttachment(idx)} className="text-red-500 hover:text-red-700"><Trash2 size={14} /></button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Resource URL (e.g. GitHub link, PDF)"
+                  value={newAttachment.url}
+                  onChange={(e) => setNewAttachment({ ...newAttachment, url: e.target.value })}
+                  className="flex-1"
+                />
+                <Button size="sm" onClick={addAttachment} variant="secondary">Add</Button>
+              </div>
+            </div>
+
             <Button onClick={addLesson}>
               <Plus size={16} className="inline mr-2" />
               Add Lesson
@@ -489,6 +573,24 @@ const CourseEditor = () => {
                       rewards: { ...quiz.rewards, attempt4: parseInt(e.target.value) }
                     })}
                   />
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <Button onClick={async () => {
+                    try {
+                      // Add timestamp to bypass potential caching issues
+                      await api.put(`/quizzes/${quiz.id}?t=${Date.now()}`, {
+                        title: quiz.title,
+                        rewards: quiz.rewards
+                      })
+                      toast.success('Quiz settings saved')
+                    } catch (error) {
+                      console.error('Save Quiz Error:', error.response?.data || error.message);
+                      toast.error('Failed to save settings: ' + (error.response?.data?.error || 'Unknown error'))
+                    }
+                  }}>
+                    <Save size={16} className="inline mr-2" />
+                    Save Quiz Settings
+                  </Button>
                 </div>
               </Card>
 

@@ -29,6 +29,55 @@ router.get('/course/:courseId', authenticate, async (req, res) => {
   }
 });
 
+// Get single quiz by ID
+router.get('/:id', authenticate, async (req, res) => {
+  try {
+    const quizId = parseInt(req.params.id);
+
+    const quiz = await prisma.quiz.findUnique({
+      where: { id: quizId },
+      include: {
+        questions: {
+          include: {
+            options: true
+          },
+          orderBy: { order: 'asc' }
+        }
+      }
+    });
+
+    if (!quiz) {
+      return res.status(404).json({ error: 'Quiz not found' });
+    }
+
+    res.json(quiz);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch quiz' });
+  }
+});
+
+// Update quiz details (Admin/Instructor only)
+router.put('/:id', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res) => {
+  try {
+    const quizId = parseInt(req.params.id);
+    const { title, rewards } = req.body;
+
+    const quiz = await prisma.quiz.update({
+      where: { id: quizId },
+      data: {
+        title,
+        rewards
+      }
+    });
+
+    res.json(quiz);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to update quiz' });
+  }
+});
+
 // Create quiz (Admin/Instructor only)
 router.post('/', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res) => {
   try {
@@ -188,9 +237,10 @@ router.post('/:quizId/attempt', authenticate, async (req, res) => {
         }
       });
 
-      // Update badge based on total points (new badge system)
-      const totalPoints = userPoints.totalPoints + pointsToAward;
-      let badge = 'Newbie';
+      // Update badge based on total points
+      const totalPoints = userPoints.totalPoints; // userPoints already includes the increment
+      let badge = userPoints.badge || 'Newbie'; // Default or keep existing
+
       if (totalPoints >= 120) badge = 'Master';
       else if (totalPoints >= 100) badge = 'Expert';
       else if (totalPoints >= 80) badge = 'Specialist';
@@ -198,10 +248,13 @@ router.post('/:quizId/attempt', authenticate, async (req, res) => {
       else if (totalPoints >= 40) badge = 'Explorer';
       else if (totalPoints >= 20) badge = 'Newbie';
 
-      await prisma.points.update({
-        where: { userId },
-        data: { badge }
-      });
+      // Only update if badge changed
+      if (badge !== userPoints.badge) {
+        await prisma.points.update({
+          where: { userId },
+          data: { badge }
+        });
+      }
 
       res.json({
         attempt,

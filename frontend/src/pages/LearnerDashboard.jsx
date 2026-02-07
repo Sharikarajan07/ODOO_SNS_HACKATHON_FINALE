@@ -13,6 +13,8 @@ const LearnerDashboard = () => {
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
+  const [searchQuery, setSearchQuery] = useState('')
+
   useEffect(() => {
     fetchData()
   }, [])
@@ -34,16 +36,6 @@ const LearnerDashboard = () => {
     }
   }
 
-  const enrollInCourse = async (courseId) => {
-    try {
-      await api.post('/enrollments', { courseId })
-      fetchData()
-      alert('Successfully enrolled!')
-    } catch (error) {
-      alert(error.response?.data?.error || 'Enrollment failed')
-    }
-  }
-
   if (loading) {
     return (
       <Layout title="My Learning">
@@ -52,111 +44,127 @@ const LearnerDashboard = () => {
     )
   }
 
+  // Filter courses based on search
+  const filteredEnrollments = enrollments.filter(e =>
+    e.course.title.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
   const enrolledCourseIds = enrollments.map(e => e.course.id)
-  const availableCourses = allCourses.filter(c => !enrolledCourseIds.includes(c.id))
+  const filteredAvailableCourses = allCourses
+    .filter(c => !enrolledCourseIds.includes(c.id))
+    .filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase()))
 
   return (
     <Layout title="My Learning">
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="flex items-center space-x-4">
-            <div className="p-3 bg-primary-100 rounded-full">
-              <Book className="text-primary-600" size={24} />
-            </div>
-            <div>
-              <p className="text-gray-500 text-sm">Enrolled Courses</p>
-              <p className="text-2xl font-bold">{stats.totalEnrollments}</p>
+      {/* Search & Stats Section */}
+      <div className="flex flex-col md:flex-row gap-6 mb-8">
+
+        {/* Profile / Stats Panel */}
+        {stats && (
+          <Card className="md:w-1/3 bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-none shadow-xl transform hover:scale-[1.02] transition-transform">
+            <div className="p-4">
+              <div className="flex items-center space-x-4 mb-6">
+                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl font-bold border-2 border-white/50">
+                  {stats.badge.charAt(0)}
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold opacity-90">My Profile</h3>
+                  <p className="text-2xl font-bold">{stats.badge}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/10 rounded-lg p-3">
+                  <p className="text-indigo-100 text-xs uppercase tracking-wider">Total Points</p>
+                  <p className="text-3xl font-bold mt-1">{stats.totalPoints}</p>
+                </div>
+                <div className="bg-white/10 rounded-lg p-3">
+                  <p className="text-indigo-100 text-xs uppercase tracking-wider">Enrolled</p>
+                  <p className="text-3xl font-bold mt-1">{stats.totalEnrollments}</p>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between text-sm text-indigo-100">
+                <span>Next Level: {
+                  stats.totalPoints < 20 ? 'Newbie (20)' :
+                    stats.totalPoints < 40 ? 'Explorer (40)' :
+                      stats.totalPoints < 60 ? 'Achiever (60)' :
+                        stats.totalPoints < 80 ? 'Specialist (80)' :
+                          stats.totalPoints < 100 ? 'Expert (100)' :
+                            stats.totalPoints < 120 ? 'Master (120)' : 'Max Level'
+                }</span>
+                <Trophy size={16} />
+              </div>
             </div>
           </Card>
-          <Card className="flex items-center space-x-4">
-            <div className="p-3 bg-green-100 rounded-full">
-              <Award className="text-green-600" size={24} />
+        )}
+
+        {/* Search & Info */}
+        <div className="md:w-2/3 flex flex-col justify-between">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-full">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Welcome back!</h2>
+            <div className="max-w-md">
+              <label className="text-sm font-medium text-gray-500 mb-1 block">Find a course</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search courses by name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                />
+                <svg className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              </div>
             </div>
-            <div>
-              <p className="text-gray-500 text-sm">Completed</p>
-              <p className="text-2xl font-bold">{stats.completedCourses}</p>
-            </div>
-          </Card>
-          <Card className="flex items-center space-x-4">
-            <div className="p-3 bg-yellow-100 rounded-full">
-              <Trophy className="text-yellow-600" size={24} />
-            </div>
-            <div>
-              <p className="text-gray-500 text-sm">Points</p>
-              <p className="text-2xl font-bold">{stats.totalPoints}</p>
-            </div>
-          </Card>
-          <Card className="flex items-center space-x-4">
-            <div className="p-3 bg-purple-100 rounded-full">
-              <Award className="text-purple-600" size={24} />
-            </div>
-            <div>
-              <p className="text-gray-500 text-sm">Badge</p>
-              <p className="text-xl font-bold">{stats.badge}</p>
-            </div>
-          </Card>
+          </div>
         </div>
-      )}
+      </div>
 
       {/* Tabs */}
-      <div className="flex space-x-4 mb-6 border-b">
+      <div className="flex space-x-6 mb-8 border-b border-gray-200">
         <button
           onClick={() => setActiveTab('my-courses')}
-          className={`pb-2 px-4 ${activeTab === 'my-courses' ? 'border-b-2 border-primary-600 text-primary-600 font-semibold' : 'text-gray-600'}`}
+          className={`pb-4 px-2 text-lg font-medium transition-colors relative ${activeTab === 'my-courses' ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
         >
           My Courses
+          {activeTab === 'my-courses' && <div className="absolute bottom-0 left-0 w-full h-1 bg-indigo-600 rounded-t-full"></div>}
         </button>
         <button
           onClick={() => setActiveTab('explore')}
-          className={`pb-2 px-4 ${activeTab === 'explore' ? 'border-b-2 border-primary-600 text-primary-600 font-semibold' : 'text-gray-600'}`}
+          className={`pb-4 px-2 text-lg font-medium transition-colors relative ${activeTab === 'explore' ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
         >
           Explore Courses
+          {activeTab === 'explore' && <div className="absolute bottom-0 left-0 w-full h-1 bg-indigo-600 rounded-t-full"></div>}
         </button>
       </div>
 
       {/* My Courses Tab */}
       {activeTab === 'my-courses' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {enrollments.map(enrollment => (
-            <Card
-              key={enrollment.id}
-              className="hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => navigate(`/course/${enrollment.course.id}`)}
-            >
-              {enrollment.course.image && (
-                <img
-                  src={enrollment.course.image}
-                  alt={enrollment.course.title}
-                  className="w-full h-40 object-cover rounded-lg mb-4"
-                  onError={(e) => {
-                    e.target.src = 'https://placehold.co/600x400?text=Course';
-                  }}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in-up">
+          {filteredEnrollments.length > 0 ? (
+            filteredEnrollments.map(enrollment => (
+              <div key={enrollment.id}>
+                {/* Render CourseCard with enrollment prop for "Start/Continue" logic */}
+                <CourseCard
+                  course={enrollment.course}
+                  enrollment={enrollment}
                 />
-              )}
-              <h3 className="text-lg font-semibold mb-2">{enrollment.course.title}</h3>
-              <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
-                <span>{enrollment.course.lessonCount} lessons</span>
-                <span>⭐ {enrollment.course.averageRating.toFixed(1)}</span>
+                {/* Extra progress bar for my courses specifically if needed, but CourseCard handles buttons. 
+                        Let's keep the dashboard consistent and just use CourseCard which now supports Continue/Start. 
+                    */}
               </div>
-              <div className="mb-2">
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="text-gray-600">Progress</span>
-                  <span className="font-medium">{enrollment.progressPercentage.toFixed(0)}%</span>
-                </div>
-                <Progress value={enrollment.progressPercentage} />
-              </div>
-              {enrollment.status === 'COMPLETED' && (
-                <Badge variant="success" className="mt-2">Completed</Badge>
+            ))
+          ) : (
+            <div className="col-span-full py-16 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+              <Book className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+              <p className="text-gray-500 text-lg">
+                {searchQuery ? 'No courses found matching your search.' : "You haven't enrolled in any courses yet."}
+              </p>
+              {!searchQuery && (
+                <Button className="mt-4" onClick={() => setActiveTab('explore')}>
+                  Explore Library
+                </Button>
               )}
-            </Card>
-          ))}
-          {enrollments.length === 0 && (
-            <div className="col-span-full text-center py-12">
-              <p className="text-gray-500 mb-4">You haven't enrolled in any courses yet</p>
-              <Button onClick={() => setActiveTab('explore')}>
-                Explore Courses
-              </Button>
             </div>
           )}
         </div>
@@ -164,47 +172,16 @@ const LearnerDashboard = () => {
 
       {/* Explore Courses Tab */}
       {activeTab === 'explore' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {availableCourses.map(course => (
-            <Card key={course.id} className="hover:shadow-lg transition-shadow">
-              {course.image && (
-                <img
-                  src={course.image}
-                  alt={course.title}
-                  className="w-full h-40 object-cover rounded-lg mb-4"
-                />
-              )}
-              <h3 className="text-lg font-semibold mb-2">{course.title}</h3>
-              <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                {course.description || 'No description'}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in-up">
+          {filteredAvailableCourses.length > 0 ? (
+            filteredAvailableCourses.map(course => (
+              <CourseCard key={course.id} course={course} />
+            ))
+          ) : (
+            <div className="col-span-full py-16 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+              <p className="text-gray-500">
+                {searchQuery ? 'No courses found matching your search.' : 'No more courses available to join.'}
               </p>
-              <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                <span>{course.lessonCount} lessons</span>
-                <span>{course.enrollmentCount} enrolled</span>
-                <span>⭐ {course.averageRating.toFixed(1)}</span>
-                {course.accessRule === 'PAID' && (
-                  <Badge variant="warning">${course.price}</Badge>
-                )}
-              </div>
-              <div className="flex space-x-2">
-                <Button
-                  className="flex-1"
-                  onClick={() => enrollInCourse(course.id)}
-                >
-                  Enroll Now
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => navigate(`/course/${course.id}`)}
-                >
-                  View
-                </Button>
-              </div>
-            </Card>
-          ))}
-          {availableCourses.length === 0 && (
-            <div className="col-span-full text-center py-12">
-              <p className="text-gray-500">No more courses available</p>
             </div>
           )}
         </div>
@@ -212,5 +189,7 @@ const LearnerDashboard = () => {
     </Layout>
   )
 }
+// Import CourseCard locally if not imported
+import CourseCard from '../components/CourseCard'
 
 export default LearnerDashboard
