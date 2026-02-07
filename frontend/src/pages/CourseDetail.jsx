@@ -4,10 +4,14 @@ import Layout from '../components/Layout'
 import { Button, Card, Badge, Progress } from '../components/ui'
 import { ArrowLeft, Play, CheckCircle, Circle, Star } from 'lucide-react'
 import api from '../services/api'
+import { useToast } from '../context/ToastContext'
+import { useAuth } from '../context/AuthContext'
 
 const CourseDetail = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const toast = useToast()
+  const { user } = useAuth()
   const [course, setCourse] = useState(null)
   const [enrollment, setEnrollment] = useState(null)
   const [progress, setProgress] = useState([])
@@ -33,6 +37,7 @@ const CourseDetail = () => {
       setReviews(reviewsRes.data)
     } catch (error) {
       console.error('Failed to fetch course details', error)
+      toast.error('Failed to load course details')
     } finally {
       setLoading(false)
     }
@@ -42,9 +47,9 @@ const CourseDetail = () => {
     try {
       await api.post('/enrollments', { courseId: parseInt(id) })
       fetchCourseDetails()
-      alert('Successfully enrolled!')
+      toast.success('Successfully enrolled!')
     } catch (error) {
-      alert(error.response?.data?.error || 'Enrollment failed')
+      toast.error(error.response?.data?.error || 'Enrollment failed')
     }
   }
 
@@ -57,14 +62,22 @@ const CourseDetail = () => {
       })
       fetchCourseDetails()
       setNewReview({ rating: 5, comment: '' })
-      alert('Review submitted!')
+      toast.success('Review submitted!')
     } catch (error) {
-      alert(error.response?.data?.error || 'Failed to submit review')
+      toast.error(error.response?.data?.error || 'Failed to submit review')
     }
   }
 
   const startLesson = (lessonId) => {
     navigate(`/lesson/${lessonId}`)
+  }
+
+  const handleBack = () => {
+    if (user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR') {
+      navigate('/admin/dashboard')
+    } else {
+      navigate('/learner/dashboard')
+    }
   }
 
   if (loading) {
@@ -83,17 +96,16 @@ const CourseDetail = () => {
     )
   }
 
+  // Use backend's progress percentage which now includes quizzes
+  const progressPercentage = enrollment ? enrollment.progressPercentage : 0
   const completedLessons = progress.filter(p => p.completed).length
-  const progressPercentage = course.lessons.length > 0
-    ? (completedLessons / course.lessons.length) * 100
-    : 0
 
   return (
     <Layout>
       <div className="mb-6">
-        <Button variant="outline" onClick={() => navigate(-1)}>
+        <Button variant="outline" onClick={handleBack}>
           <ArrowLeft size={16} className="inline mr-2" />
-          Back
+          Back to Dashboard
         </Button>
       </div>
 
@@ -107,6 +119,9 @@ const CourseDetail = () => {
                 src={course.image}
                 alt={course.title}
                 className="w-full h-64 object-cover rounded-lg mb-4"
+                onError={(e) => {
+                  e.target.src = 'https://placehold.co/800x400?text=Course+Image';
+                }}
               />
             )}
             <h1 className="text-3xl font-bold mb-2">{course.title}</h1>
@@ -118,6 +133,11 @@ const CourseDetail = () => {
               </div>
               <span className="text-gray-500">{course.enrollmentCount} enrolled</span>
               <span className="text-gray-500">{course.lessons.length} lessons</span>
+              {course.accessRule === 'PAID' && (
+                <Badge variant="warning" className="text-lg">
+                  ${course.price}
+                </Badge>
+              )}
             </div>
             {course.tags && course.tags.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -174,7 +194,7 @@ const CourseDetail = () => {
           {/* Reviews */}
           <Card>
             <h2 className="text-2xl font-bold mb-4">Reviews</h2>
-            
+
             {enrollment && (
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                 <h3 className="font-semibold mb-2">Leave a Review</h3>
@@ -183,11 +203,10 @@ const CourseDetail = () => {
                     <Star
                       key={rating}
                       size={24}
-                      className={`cursor-pointer ${
-                        rating <= newReview.rating
-                          ? 'text-yellow-500 fill-current'
-                          : 'text-gray-300'
-                      }`}
+                      className={`cursor-pointer ${rating <= newReview.rating
+                        ? 'text-yellow-500 fill-current'
+                        : 'text-gray-300'
+                        }`}
                       onClick={() => setNewReview({ ...newReview, rating })}
                     />
                   ))}
@@ -237,9 +256,15 @@ const CourseDetail = () => {
             {!enrollment ? (
               <>
                 <h3 className="text-xl font-bold mb-4">Ready to start learning?</h3>
-                <Button className="w-full" onClick={enrollInCourse}>
-                  Enroll in Course
-                </Button>
+                {course.accessRule === 'PAID' ? (
+                  <Button className="w-full" onClick={enrollInCourse}>
+                    Buy Course for ${course.price}
+                  </Button>
+                ) : (
+                  <Button className="w-full" onClick={enrollInCourse}>
+                    Enroll for Free
+                  </Button>
+                )}
               </>
             ) : (
               <>
@@ -268,6 +293,19 @@ const CourseDetail = () => {
                       onClick={() => navigate(`/quiz/${course.quizzes[0].id}`)}
                     >
                       Take Quiz
+                    </Button>
+                  )}
+                  {enrollment.status !== 'COMPLETED' && completedLessons === course.lessons.length && (
+                    <Button
+                      variant="success"
+                      className="w-full mt-2"
+                      onClick={() => {
+                        api.patch(`/enrollments/${id}/complete`)
+                          .then(() => fetchCourseDetails())
+                          .catch(() => toast.error('Failed to complete course'))
+                      }}
+                    >
+                      Complete Course
                     </Button>
                   )}
                 </div>

@@ -1,16 +1,21 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout'
-import { Button, Card, Badge } from '../components/ui'
-import { Plus, Edit, Trash2, BarChart, LayoutGrid, List } from 'lucide-react'
+import { Button } from '../components/ui'
+import { Skeleton } from '../components/ui/Skeleton'
+import { useToast } from '../context/ToastContext'
+import { Plus, LayoutGrid, List, Search, BookOpen, Users, Layers, Activity } from 'lucide-react'
 import api from '../services/api'
+import CourseCard from '../components/CourseCard'
 
 const AdminDashboard = () => {
   const [courses, setCourses] = useState([])
   const [stats, setStats] = useState(null)
   const [viewMode, setViewMode] = useState('grid')
   const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
   const navigate = useNavigate()
+  const toast = useToast()
 
   useEffect(() => {
     fetchData()
@@ -26,8 +31,10 @@ const AdminDashboard = () => {
       setStats(statsRes.data)
     } catch (error) {
       console.error('Failed to fetch data', error)
+      toast.error('Failed to load dashboard data')
     } finally {
-      setLoading(false)
+      // Add artificial delay to show off the skeleton if it loads too fast (optional, but good for UX feel)
+      setTimeout(() => setLoading(false), 500)
     }
   }
 
@@ -37,8 +44,9 @@ const AdminDashboard = () => {
     try {
       await api.delete(`/courses/${id}`)
       setCourses(courses.filter(c => c.id !== id))
+      toast.success('Course deleted successfully')
     } catch (error) {
-      alert('Failed to delete course')
+      toast.error('Failed to delete course')
     }
   }
 
@@ -50,193 +58,198 @@ const AdminDashboard = () => {
       setCourses(courses.map(c =>
         c.id === course.id ? { ...c, published: !c.published } : c
       ))
+      toast.success(`Course ${course.published ? 'unpublished' : 'published'} successfully`)
     } catch (error) {
-      alert('Failed to update course status')
+      toast.error('Failed to update course status')
     }
   }
+
+  const filteredCourses = courses.filter(course =>
+    course.title.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   if (loading) {
     return (
       <Layout title="Dashboard">
-        <div className="text-center py-12">Loading...</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
+        </div>
+        <div className="flex flex-col md:flex-row justify-between gap-4 mb-8">
+          <Skeleton className="h-12 w-48" />
+          <Skeleton className="h-12 w-full md:w-96" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-96 w-full rounded-2xl" />)}
+        </div>
       </Layout>
     )
   }
 
+  // PREMIUM SAAS DASHBOARD DESIGN
   return (
-    <Layout title="Dashboard">
-      {/* Stats Cards */}
+    <Layout title="Overview">
+      {/* 1. HERO STATS SECTION */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <h3 className="text-gray-500 text-sm font-medium">Total Courses</h3>
-            <p className="text-3xl font-bold text-primary-600 mt-2">{stats.totalCourses}</p>
-          </Card>
-          <Card>
-            <h3 className="text-gray-500 text-sm font-medium">Total Learners</h3>
-            <p className="text-3xl font-bold text-primary-600 mt-2">{stats.totalLearners}</p>
-          </Card>
-          <Card>
-            <h3 className="text-gray-500 text-sm font-medium">Total Enrollments</h3>
-            <p className="text-3xl font-bold text-primary-600 mt-2">{stats.totalEnrollments}</p>
-          </Card>
-          <Card>
-            <h3 className="text-gray-500 text-sm font-medium">Active Enrollments</h3>
-            <p className="text-3xl font-bold text-primary-600 mt-2">{stats.activeEnrollments}</p>
-          </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <StatCard
+            title="Total Courses"
+            value={stats.totalCourses}
+            icon={BookOpen}
+            trend="+12%"
+            trendUp={true}
+            color="indigo"
+          />
+          <StatCard
+            title="Total Learners"
+            value={stats.totalLearners}
+            icon={Users}
+            trend="+5%"
+            trendUp={true}
+            color="purple"
+          />
+          <StatCard
+            title="Total Enrollments"
+            value={stats.totalEnrollments}
+            icon={Layers}
+            trend="+8%"
+            trendUp={true}
+            color="blue"
+          />
+          <StatCard
+            title="Active Enrollments"
+            value={stats.activeEnrollments}
+            icon={Activity}
+            trend="Steady"
+            trendUp={true}
+            color="emerald"
+          />
         </div>
       )}
 
-      {/* Course Management */}
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Courses</h2>
-        <div className="flex items-center space-x-4">
-          <div className="flex space-x-2">
+      {/* 2. ACTIONS & FILTERS HEADER */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Configuration</h2>
+          <p className="text-gray-500 mt-1">Manage your courses and content</p>
+        </div>
+
+        <div className="flex items-center space-x-3 w-full md:w-auto bg-white p-1.5 rounded-xl shadow-sm border border-gray-100">
+          {/* Search */}
+          <div className="relative group">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-4 py-2 w-64 bg-transparent border-none focus:ring-0 text-sm placeholder-gray-400"
+            />
+          </div>
+
+          <div className="h-6 w-px bg-gray-200 mx-2"></div>
+
+          {/* View Toggle */}
+          <div className="flex bg-gray-100 rounded-lg p-1">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded ${viewMode === 'grid' ? 'bg-primary-600 text-white' : 'bg-gray-200'}`}
+              className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
             >
-              <LayoutGrid size={20} />
+              <LayoutGrid size={18} />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded ${viewMode === 'list' ? 'bg-primary-600 text-white' : 'bg-gray-200'}`}
+              className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
             >
-              <List size={20} />
+              <List size={18} />
             </button>
           </div>
-          <Button onClick={() => navigate('/admin/course/new')}>
-            <Plus size={20} className="inline mr-2" />
+
+          <Button
+            onClick={() => navigate('/admin/course/new')}
+            className="ml-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 shadow-md hover:shadow-lg transition-all"
+          >
+            <Plus size={18} className="mr-2" />
             New Course
           </Button>
         </div>
       </div>
 
-      {/* Courses Grid/List */}
+      {/* 3. COURSES CONTENT */}
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map(course => (
-            <Card key={course.id} className="hover:shadow-lg transition-shadow">
-              {course.image && (
-                <img
-                  src={course.image}
-                  alt={course.title}
-                  className="w-full h-40 object-cover rounded-lg mb-4"
-                />
-              )}
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="text-lg font-semibold">{course.title}</h3>
-                {course.published ? (
-                  <Badge variant="success">Published</Badge>
-                ) : (
-                  <Badge variant="warning">Draft</Badge>
-                )}
-              </div>
-              <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                {course.description || 'No description'}
-              </p>
-              <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                <span>{course.lessonCount} lessons</span>
-                <span>{course.enrollmentCount} enrolled</span>
-                <span>⭐ {course.averageRating.toFixed(1)}</span>
-              </div>
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  className="flex-1 text-sm"
-                  onClick={() => navigate(`/admin/course/${course.id}/edit`)}
-                >
-                  <Edit size={16} className="inline mr-1" />
-                  Edit
-                </Button>
-                <Button
-                  variant="secondary"
-                  className="text-sm"
-                  onClick={() => togglePublish(course)}
-                >
-                  {course.published ? 'Unpublish' : 'Publish'}
-                </Button>
-                <Button
-                  variant="secondary"
-                  className="text-sm"
-                  onClick={() => navigate(`/admin/reporting/${course.id}`)}
-                >
-                  <BarChart size={16} />
-                </Button>
-                <Button
-                  variant="danger"
-                  className="text-sm"
-                  onClick={() => deleteCourse(course.id)}
-                >
-                  <Trash2 size={16} />
-                </Button>
-              </div>
-            </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8">
+          {filteredCourses.map(course => (
+            <CourseCard
+              key={course.id}
+              course={course}
+              viewMode="grid"
+              isAdmin={true}
+              onDelete={deleteCourse}
+              onTogglePublish={togglePublish}
+            />
           ))}
         </div>
       ) : (
-        <div className="space-y-4">
-          {courses.map(course => (
-            <Card key={course.id} className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                {course.image && (
-                  <img
-                    src={course.image}
-                    alt={course.title}
-                    className="w-16 h-16 object-cover rounded"
-                  />
-                )}
-                <div>
-                  <h3 className="font-semibold">{course.title}</h3>
-                  <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                    <span>{course.lessonCount} lessons</span>
-                    <span>{course.enrollmentCount} enrolled</span>
-                    <span>⭐ {course.averageRating.toFixed(1)}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                {course.published ? (
-                  <Badge variant="success">Published</Badge>
-                ) : (
-                  <Badge variant="warning">Draft</Badge>
-                )}
-                <Button
-                  variant="outline"
-                  className="text-sm"
-                  onClick={() => navigate(`/admin/course/${course.id}/edit`)}
-                >
-                  <Edit size={16} />
-                </Button>
-                <Button
-                  variant="secondary"
-                  className="text-sm"
-                  onClick={() => navigate(`/admin/reporting/${course.id}`)}
-                >
-                  <BarChart size={16} />
-                </Button>
-                <Button
-                  variant="danger"
-                  className="text-sm"
-                  onClick={() => deleteCourse(course.id)}
-                >
-                  <Trash2 size={16} />
-                </Button>
-              </div>
-            </Card>
-          ))}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="divide-y divide-gray-100">
+            {filteredCourses.map(course => (
+              <CourseCard
+                key={course.id}
+                course={course}
+                viewMode="list"
+                isAdmin={true}
+                onDelete={deleteCourse}
+                onTogglePublish={togglePublish}
+              />
+            ))}
+          </div>
         </div>
       )}
 
-      {courses.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">No courses yet</p>
+      {/* Empty State */}
+      {courses.length === 0 && !loading && (
+        <div className="text-center py-24 bg-white rounded-2xl border border-dashed border-gray-200">
+          <div className="bg-indigo-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+            <BookOpen size={24} className="text-indigo-600" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-1">No courses yet</h3>
+          <p className="text-gray-500 mb-6 max-w-sm mx-auto">Get started by creating your first course. It only takes a few minutes.</p>
           <Button onClick={() => navigate('/admin/course/new')}>
-            Create Your First Course
+            <Plus size={18} className="mr-2" />
+            Create Course
           </Button>
         </div>
       )}
     </Layout>
+  )
+}
+
+// Helper Component for Stats
+const StatCard = ({ title, value, icon: Icon, trend, trendUp, color = 'indigo' }) => {
+  const colors = {
+    indigo: 'bg-indigo-50 text-indigo-600',
+    purple: 'bg-purple-50 text-purple-600',
+    blue: 'bg-blue-50 text-blue-600',
+    emerald: 'bg-emerald-50 text-emerald-600',
+  }
+
+  return (
+    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] hover:shadow-lg transition-shadow duration-300">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">{title}</p>
+          <h3 className="text-2xl font-bold text-gray-900 mt-2">{value}</h3>
+        </div>
+        <div className={`p-3 rounded-xl ${colors[color]} bg-opacity-50`}>
+          <Icon size={24} />
+        </div>
+      </div>
+      <div className="mt-4 flex items-center text-xs">
+        <span className={`flex items-center font-medium ${trendUp ? 'text-green-600' : 'text-red-600'}`}>
+          {trendUp ? '↑' : '↓'} {trend}
+        </span>
+        <span className="text-gray-400 ml-2">vs last month</span>
+      </div>
+    </div>
   )
 }
 

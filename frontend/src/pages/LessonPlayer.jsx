@@ -1,16 +1,34 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Button, Badge } from '../components/ui'
 import { ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react'
 import api from '../services/api'
+import { useToast } from '../context/ToastContext'
 
 const LessonPlayer = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const toast = useToast()
   const [lesson, setLesson] = useState(null)
   const [allLessons, setAllLessons] = useState([])
   const [completed, setCompleted] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  // Use a ref to track if component is mounted to prevent state updates on unmount
+  const isMounted = useRef(true)
+
+  // Helper to extract YouTube video ID
+  const getYouTubeId = (url) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+    const match = url.match(regExp)
+    return (match && match[2].length === 11) ? match[2] : null
+  }
+
+  useEffect(() => {
+    return () => {
+      isMounted.current = false
+    }
+  }, [])
 
   useEffect(() => {
     fetchLesson()
@@ -19,35 +37,44 @@ const LessonPlayer = () => {
   useEffect(() => {
     // Track time spent (simple implementation)
     const interval = setInterval(() => {
-      if (lesson) {
+      if (lesson && isMounted.current) {
         updateProgress(false, 10) // Update every 10 seconds
       }
     }, 10000)
 
     return () => clearInterval(interval)
-  }, [lesson])
+  }, [lesson]) // Ideally should depend on ID, not full lesson object to avoid re-renders if lesson changes
 
   const fetchLesson = async () => {
+    setLoading(true)
     try {
-      const [lessonRes, lessonsRes] = await Promise.all([
-        api.get(`/lessons/${id}`),
-        api.get(`/lessons/course/${id}`).catch(() => ({ data: [] }))
-      ])
-      
-      setLesson(lessonRes.data)
-      
-      // Fetch all lessons of the course
-      const courseLessons = await api.get(`/lessons/course/${lessonRes.data.courseId}`)
-      setAllLessons(courseLessons.data)
+      const lessonRes = await api.get(`/lessons/${id}`)
 
-      // Check if lesson is completed
-      const progressRes = await api.get(`/progress/course/${lessonRes.data.courseId}`)
-      const lessonProgress = progressRes.data.find(p => p.id === parseInt(id))
-      setCompleted(lessonProgress?.completed || false)
+      if (!isMounted.current) return
+
+      setLesson(lessonRes.data)
+
+      try {
+        const courseId = lessonRes.data.courseId
+        // Fetch all lessons of the course
+        const [courseLessonsRes, progressRes] = await Promise.all([
+          api.get(`/lessons/course/${courseId}`),
+          api.get(`/progress/course/${courseId}`)
+        ])
+
+        if (isMounted.current) {
+          setAllLessons(courseLessonsRes.data)
+          const lessonProgress = progressRes.data.find(p => p.id === parseInt(id))
+          setCompleted(lessonProgress?.completed || false)
+        }
+      } catch (innerError) {
+        console.error('Failed to fetch related data', innerError)
+      }
     } catch (error) {
       console.error('Failed to fetch lesson', error)
+      // If lesson not found, we might want to handle it (loading becomes false, lesson is null -> shows "Lesson not found")
     } finally {
-      setLoading(false)
+      if (isMounted.current) setLoading(false)
     }
   }
 
@@ -57,9 +84,9 @@ const LessonPlayer = () => {
         completed: isCompleted,
         timeSpent
       })
-      if (isCompleted) {
+      if (isCompleted && isMounted.current) {
         setCompleted(true)
-        alert('Lesson marked as complete! 🎉')
+        toast.success('Lesson marked as complete! 🎉')
       }
     } catch (error) {
       console.error('Failed to update progress', error)
@@ -86,6 +113,42 @@ const LessonPlayer = () => {
       navigate(`/lesson/${allLessons[currentIndex - 1].id}`)
     }
   }
+
+  // Memoize the video player to prevent re-renders on every tick
+  const VideoPlayer = useMemo(() => {
+    if (!lesson || lesson.type !== 'VIDEO') return null
+
+    return (
+      <div className="aspect-video bg-black rounded-lg overflow-hidden mb-4 relative group">
+        {lesson.contentUrl.includes('youtube') || lesson.contentUrl.includes('youtu.be') ? (
+          <>
+            <iframe
+              src={`https://www.youtube.com/embed/${getYouTubeId(lesson.contentUrl)}?rel=0&modestbranding=1`}
+              className="w-full h-full"
+              allowFullScreen
+              title={lesson.title}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            />
+            <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-black/50 text-white border-white/50 pointer-events-auto"
+                onClick={() => window.open(lesson.contentUrl, '_blank')}
+              >
+                Watch on YouTube ↗
+              </Button>
+            </div>
+          </>
+        ) : (
+          <video controls className="w-full h-full">
+            <source src={lesson.contentUrl} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        )}
+      </div>
+    )
+  }, [lesson?.id, lesson?.contentUrl]) // Only re-render if ID or URL changes
 
   if (loading) {
     return (
@@ -135,6 +198,15 @@ const LessonPlayer = () => {
                 Mark Complete
               </Button>
             )}
+            {lesson.allowDownload && (
+              <Button
+                variant="outline"
+                onClick={() => window.open(lesson.contentUrl, '_blank')}
+                className="ml-2"
+              >
+                Download
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -143,31 +215,33 @@ const LessonPlayer = () => {
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="bg-gray-900 rounded-lg p-8 mb-6">
           {/* Content Display */}
-          {lesson.type === 'VIDEO' && (
-            <div className="aspect-video bg-black rounded-lg overflow-hidden mb-4">
-              {lesson.contentUrl.includes('youtube.com') || lesson.contentUrl.includes('youtu.be') ? (
-                <iframe
-                  src={lesson.contentUrl.replace('watch?v=', 'embed/')}
-                  className="w-full h-full"
-                  allowFullScreen
-                  title={lesson.title}
-                />
-              ) : (
-                <video controls className="w-full h-full">
-                  <source src={lesson.contentUrl} type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video>
-              )}
+          {VideoPlayer}
+
+          {lesson.type === 'VIDEO' && (lesson.contentUrl.includes('youtube') || lesson.contentUrl.includes('youtu.be')) && (
+            <div className="mb-4 text-center">
+              <p className="text-sm text-gray-400">
+                Video not playing? <a href={lesson.contentUrl} target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:underline">Watch directly on YouTube</a>
+              </p>
             </div>
           )}
 
           {lesson.type === 'DOCUMENT' && (
             <div className="bg-white text-black p-8 rounded-lg mb-4">
-              <iframe
-                src={lesson.contentUrl}
-                className="w-full h-screen"
-                title={lesson.title}
-              />
+              {lesson.contentUrl.endsWith('.pdf') ? (
+                <iframe
+                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(lesson.contentUrl)}&embedded=true`}
+                  className="w-full h-screen"
+                  title={lesson.title}
+                  onError={(e) => console.log("Iframe error:", e)}
+                />
+              ) : (
+                <div className="text-center py-20">
+                  <p className="text-xl mb-4">This document cannot be previewed directly.</p>
+                  <Button onClick={() => window.open(lesson.contentUrl, '_blank')}>
+                    Open Document
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 

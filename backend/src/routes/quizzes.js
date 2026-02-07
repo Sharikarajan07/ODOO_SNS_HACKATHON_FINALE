@@ -1,6 +1,7 @@
 const express = require('express');
 const prisma = require('../config/database');
 const { authenticate, authorize } = require('../middleware/auth');
+const { updateCourseProgress } = require('../utils/progress');
 
 const router = express.Router();
 
@@ -132,33 +133,50 @@ router.post('/:quizId/attempt', authenticate, async (req, res) => {
     quiz.questions.forEach(question => {
       const correctOption = question.options.find(opt => opt.isCorrect);
       const userAnswer = answers[question.id];
-      
+
       if (correctOption && userAnswer === correctOption.id) {
         correctCount++;
       }
     });
 
-    const score = (correctCount / quiz.questions.length) * 100;
+    const score = quiz.questions.length > 0
+      ? (correctCount / quiz.questions.length) * 100
+      : 0;
 
     // Get attempt number
     const previousAttempts = await prisma.quizAttempt.count({
       where: { userId, quizId }
     });
+    const attemptNo = previousAttempts + 1;
 
     // Save attempt
     const attempt = await prisma.quizAttempt.create({
       data: {
         userId,
         quizId,
-        attemptNo: previousAttempts + 1,
+        attemptNo,
         score
       }
     });
 
-    // Award points (only on first attempt or if score improves)
+    // Update course progress (new logic to include quizzes in progress)
+    await updateCourseProgress(userId, quiz.courseId);
+
+    // Award points based on attempt number (only for learners)
     if (req.user.role === 'LEARNER') {
-      const pointsToAward = Math.floor(score / 10); // 10 points per 10% score
-      
+      // Get rewards config from quiz
+      const rewards = quiz.rewards || { attempt1: 10, attempt2: 7, attempt3: 5, attempt4: 3 };
+
+      // Determine base points based on attempt number
+      let basePoints;
+      if (attemptNo === 1) basePoints = rewards.attempt1 || 10;
+      else if (attemptNo === 2) basePoints = rewards.attempt2 || 7;
+      else if (attemptNo === 3) basePoints = rewards.attempt3 || 5;
+      else basePoints = rewards.attempt4 || 3;
+
+      // Calculate points based on score percentage
+      const pointsToAward = Math.floor(basePoints * (score / 100));
+
       const userPoints = await prisma.points.upsert({
         where: { userId },
         update: {
@@ -170,11 +188,15 @@ router.post('/:quizId/attempt', authenticate, async (req, res) => {
         }
       });
 
-      // Update badge based on total points
-      let badge = 'Beginner';
-      if (userPoints.totalPoints >= 500) badge = 'Expert';
-      else if (userPoints.totalPoints >= 200) badge = 'Advanced';
-      else if (userPoints.totalPoints >= 50) badge = 'Intermediate';
+      // Update badge based on total points (new badge system)
+      const totalPoints = userPoints.totalPoints + pointsToAward;
+      let badge = 'Newbie';
+      if (totalPoints >= 120) badge = 'Master';
+      else if (totalPoints >= 100) badge = 'Expert';
+      else if (totalPoints >= 80) badge = 'Specialist';
+      else if (totalPoints >= 60) badge = 'Achiever';
+      else if (totalPoints >= 40) badge = 'Explorer';
+      else if (totalPoints >= 20) badge = 'Newbie';
 
       await prisma.points.update({
         where: { userId },
@@ -183,12 +205,15 @@ router.post('/:quizId/attempt', authenticate, async (req, res) => {
 
       res.json({
         attempt,
+        correctCount,
+        totalQuestions: quiz.questions.length,
         pointsAwarded: pointsToAward,
-        totalPoints: userPoints.totalPoints + pointsToAward,
-        badge
+        totalPoints,
+        badge,
+        attemptNo
       });
     } else {
-      res.json({ attempt });
+      res.json({ attempt, correctCount, totalQuestions: quiz.questions.length });
     }
   } catch (error) {
     console.error(error);

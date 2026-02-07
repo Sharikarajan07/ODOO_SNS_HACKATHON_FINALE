@@ -65,6 +65,8 @@ model Course {
   published   Boolean          @default(false)
   visibility  CourseVisibility @default(PUBLIC)
   accessRule  AccessRule       @default(FREE)
+  price       Float            @default(0)
+  viewCount   Int              @default(0)
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
@@ -77,15 +79,17 @@ model Course {
 }
 
 model Lesson {
-  id          Int        @id @default(autoincrement())
-  courseId    Int
-  title       String
-  type        LessonType
-  contentUrl  String
-  description String?
-  order       Int
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id            Int        @id @default(autoincrement())
+  courseId      Int
+  title         String
+  type          LessonType
+  contentUrl    String
+  description   String?
+  order         Int
+  duration      Int        @default(0)
+  allowDownload Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   course      Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
   attachments LessonAttachment[]
@@ -110,6 +114,7 @@ model Quiz {
   id        Int      @id @default(autoincrement())
   courseId  Int
   title     String   @default("Course Quiz")
+  rewards   Json     @default("{\"attempt1\": 10, \"attempt2\": 7, \"attempt3\": 5, \"attempt4\": 3}")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

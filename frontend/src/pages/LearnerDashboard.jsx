@@ -129,6 +129,9 @@ const LearnerDashboard = () => {
                   src={enrollment.course.image}
                   alt={enrollment.course.title}
                   className="w-full h-40 object-cover rounded-lg mb-4"
+                  onError={(e) => {
+                    e.target.src = 'https://placehold.co/600x400?text=Course';
+                  }}
                 />
               )}
               <h3 className="text-lg font-semibold mb-2">{enrollment.course.title}</h3>
@@ -179,6 +182,9 @@ const LearnerDashboard = () => {
                 <span>{course.lessonCount} lessons</span>
                 <span>{course.enrollmentCount} enrolled</span>
                 <span>⭐ {course.averageRating.toFixed(1)}</span>
+                {course.accessRule === 'PAID' && (
+                  <Badge variant="warning">${course.price}</Badge>
+                )}
               </div>
               <div className="flex space-x-2">
                 <Button

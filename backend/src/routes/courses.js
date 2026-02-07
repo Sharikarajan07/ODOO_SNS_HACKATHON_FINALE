@@ -8,9 +8,9 @@ const router = express.Router();
 router.get('/', authenticate, async (req, res) => {
   try {
     const { role, id: userId } = req.user;
-    
+
     let where = {};
-    
+
     // Learners and guests see only published courses
     if (role === 'LEARNER' || role === 'GUEST') {
       where = {
@@ -19,10 +19,13 @@ router.get('/', authenticate, async (req, res) => {
       };
     }
     // Admin and Instructor see all courses
-    
+
     const courses = await prisma.course.findMany({
       where,
       include: {
+        lessons: {
+          select: { id: true, duration: true, title: true, type: true }
+        },
         _count: {
           select: {
             lessons: true,
@@ -62,7 +65,7 @@ router.get('/', authenticate, async (req, res) => {
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const courseId = parseInt(req.params.id);
-    
+
     const course = await prisma.course.findUnique({
       where: { id: courseId },
       include: {
@@ -100,9 +103,9 @@ router.get('/:id', authenticate, async (req, res) => {
     }
 
     // Check access
-    if (course.published === false && 
-        req.user.role !== 'ADMIN' && 
-        req.user.role !== 'INSTRUCTOR') {
+    if (course.published === false &&
+      req.user.role !== 'ADMIN' &&
+      req.user.role !== 'INSTRUCTOR') {
       return res.status(403).json({ error: 'Course not published' });
     }
 

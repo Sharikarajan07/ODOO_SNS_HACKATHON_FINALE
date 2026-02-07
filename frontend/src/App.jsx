@@ -35,12 +35,12 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      
+
       <Route path="/" element={
         user ? (
           user.role === 'LEARNER' ? <Navigate to="/learner/dashboard" /> :
-          user.role === 'ADMIN' || user.role === 'INSTRUCTOR' ? <Navigate to="/admin/dashboard" /> :
-          <Navigate to="/login" />
+            user.role === 'ADMIN' || user.role === 'INSTRUCTOR' ? <Navigate to="/admin/dashboard" /> :
+              <Navigate to="/login" />
         ) : <Navigate to="/login" />
       } />
 
@@ -91,11 +91,15 @@ const AppRoutes = () => {
   )
 }
 
+import { ToastProvider } from './context/ToastContext'
+
 function App() {
   return (
     <Router>
       <AuthProvider>
-        <AppRoutes />
+        <ToastProvider>
+          <AppRoutes />
+        </ToastProvider>
       </AuthProvider>
     </Router>
   )

@@ -4,11 +4,13 @@ import Layout from '../components/Layout'
 import { Button, Input, Card, Select, Badge } from '../components/ui'
 import { Plus, Trash2, Save, ArrowLeft } from 'lucide-react'
 import api from '../services/api'
+import { useToast } from '../context/ToastContext'
 
 const CourseEditor = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const isEdit = Boolean(id)
+  const toast = useToast()
 
   const [course, setCourse] = useState({
     title: '',
@@ -27,7 +29,9 @@ const CourseEditor = () => {
     type: 'VIDEO',
     contentUrl: '',
     description: '',
-    order: 0
+    order: 0,
+    duration: 0,
+    allowDownload: true
   })
 
   const [newQuestion, setNewQuestion] = useState({
@@ -58,12 +62,14 @@ const CourseEditor = () => {
         image: courseData.image || '',
         visibility: courseData.visibility,
         accessRule: courseData.accessRule,
+        price: courseData.price || 0,
         published: courseData.published
       })
       setLessons(courseData.lessons || [])
       setQuiz(courseData.quizzes?.[0] || null)
     } catch (error) {
       console.error('Failed to fetch course', error)
+      toast.error('Failed to load course details')
     }
   }
 
@@ -77,13 +83,15 @@ const CourseEditor = () => {
 
       if (isEdit) {
         await api.put(`/courses/${id}`, data)
-        alert('Course updated successfully')
+        toast.success('Course updated successfully')
+        navigate('/admin/dashboard')
       } else {
         const response = await api.post('/courses', data)
+        toast.success('Course created successfully')
         navigate(`/admin/course/${response.data.id}/edit`)
       }
     } catch (error) {
-      alert('Failed to save course')
+      toast.error('Failed to save course')
     } finally {
       setLoading(false)
     }
@@ -91,7 +99,7 @@ const CourseEditor = () => {
 
   const addLesson = async () => {
     if (!newLesson.title || !newLesson.contentUrl) {
-      alert('Please fill in all required fields')
+      toast.warning('Please fill in all required fields')
       return
     }
 
@@ -107,10 +115,13 @@ const CourseEditor = () => {
         type: 'VIDEO',
         contentUrl: '',
         description: '',
-        order: 0
+        order: 0,
+        duration: 0,
+        allowDownload: true
       })
+      toast.success('Lesson added successfully')
     } catch (error) {
-      alert('Failed to add lesson')
+      toast.error('Failed to add lesson')
     }
   }
 
@@ -120,8 +131,9 @@ const CourseEditor = () => {
     try {
       await api.delete(`/lessons/${lessonId}`)
       setLessons(lessons.filter(l => l.id !== lessonId))
+      toast.success('Lesson deleted')
     } catch (error) {
-      alert('Failed to delete lesson')
+      toast.error('Failed to delete lesson')
     }
   }
 
@@ -130,23 +142,25 @@ const CourseEditor = () => {
       const response = await api.post('/quizzes', {
         courseId: id,
         title: 'Course Quiz',
-        questions: []
+        questions: [],
+        rewards: { attempt1: 10, attempt2: 7, attempt3: 5, attempt4: 3 }
       })
       setQuiz(response.data)
+      toast.success('Quiz created')
     } catch (error) {
-      alert('Failed to create quiz')
+      toast.error('Failed to create quiz')
     }
   }
 
   const addQuestion = async () => {
     if (!newQuestion.questionText || !quiz) {
-      alert('Please provide question text')
+      toast.warning('Please provide question text')
       return
     }
 
     const validOptions = newQuestion.options.filter(o => o.optionText.trim())
     if (validOptions.length < 2) {
-      alert('Please provide at least 2 options')
+      toast.warning('Please provide at least 2 options')
       return
     }
 
@@ -155,12 +169,12 @@ const CourseEditor = () => {
         questionText: newQuestion.questionText,
         options: validOptions
       })
-      
+
       setQuiz({
         ...quiz,
         questions: [...(quiz.questions || []), response.data]
       })
-      
+
       setNewQuestion({
         questionText: '',
         options: [
@@ -168,8 +182,9 @@ const CourseEditor = () => {
           { optionText: '', isCorrect: false }
         ]
       })
+      toast.success('Question added')
     } catch (error) {
-      alert('Failed to add question')
+      toast.error('Failed to add question')
     }
   }
 
@@ -260,6 +275,24 @@ const CourseEditor = () => {
             placeholder="https://example.com/image.jpg"
           />
 
+          {/* Image Preview */}
+          {course.image && (
+            <div className="mt-2 mb-4">
+              <p className="text-sm text-gray-500 mb-1">Image Preview:</p>
+              <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                <img
+                  src={course.image}
+                  alt="Course Preview"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = 'https://placehold.co/600x400?text=Invalid+Image+URL';
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <Select
               label="Visibility"
@@ -284,6 +317,18 @@ const CourseEditor = () => {
             />
           </div>
 
+          {course.accessRule === 'PAID' && (
+            <div className="mt-4">
+              <Input
+                label="Price ($)"
+                type="number"
+                value={course.price}
+                onChange={(e) => setCourse({ ...course, price: parseFloat(e.target.value) })}
+                placeholder="29.99"
+              />
+            </div>
+          )}
+
           <Button onClick={saveCourse} disabled={loading}>
             <Save size={16} className="inline mr-2" />
             {loading ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Course'}
@@ -303,6 +348,7 @@ const CourseEditor = () => {
                     <span className="text-gray-400">#{index + 1}</span>
                     <h3 className="font-semibold">{lesson.title}</h3>
                     <Badge variant="primary">{lesson.type}</Badge>
+                    {lesson.duration > 0 && <span className="text-xs text-gray-500">({lesson.duration}m)</span>}
                   </div>
                   <p className="text-sm text-gray-600 mt-1">{lesson.description}</p>
                   <a
@@ -352,6 +398,27 @@ const CourseEditor = () => {
               placeholder="https://youtube.com/watch?v=..."
             />
 
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <Input
+                label="Duration (minutes)"
+                type="number"
+                value={newLesson.duration}
+                onChange={(e) => setNewLesson({ ...newLesson, duration: parseInt(e.target.value) })}
+                placeholder="15"
+              />
+              <div className="flex items-center h-full pt-6">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={newLesson.allowDownload}
+                    onChange={(e) => setNewLesson({ ...newLesson, allowDownload: e.target.checked })}
+                    className="w-4 h-4 text-primary-600 rounded"
+                  />
+                  <span className="text-gray-700">Allow Download</span>
+                </label>
+              </div>
+            </div>
+
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Description
@@ -382,6 +449,49 @@ const CourseEditor = () => {
             </Card>
           ) : (
             <>
+              {/* Rewards Configuration */}
+              <Card className="mb-6">
+                <h3 className="text-lg font-semibold mb-4">Quiz Rewards (Points)</h3>
+                <div className="grid grid-cols-4 gap-4">
+                  <Input
+                    label="1st Attempt"
+                    type="number"
+                    value={quiz.rewards?.attempt1 || 10}
+                    onChange={(e) => setQuiz({
+                      ...quiz,
+                      rewards: { ...quiz.rewards, attempt1: parseInt(e.target.value) }
+                    })}
+                  />
+                  <Input
+                    label="2nd Attempt"
+                    type="number"
+                    value={quiz.rewards?.attempt2 || 7}
+                    onChange={(e) => setQuiz({
+                      ...quiz,
+                      rewards: { ...quiz.rewards, attempt2: parseInt(e.target.value) }
+                    })}
+                  />
+                  <Input
+                    label="3rd Attempt"
+                    type="number"
+                    value={quiz.rewards?.attempt3 || 5}
+                    onChange={(e) => setQuiz({
+                      ...quiz,
+                      rewards: { ...quiz.rewards, attempt3: parseInt(e.target.value) }
+                    })}
+                  />
+                  <Input
+                    label="4th+ Attempt"
+                    type="number"
+                    value={quiz.rewards?.attempt4 || 3}
+                    onChange={(e) => setQuiz({
+                      ...quiz,
+                      rewards: { ...quiz.rewards, attempt4: parseInt(e.target.value) }
+                    })}
+                  />
+                </div>
+              </Card>
+
               {/* Existing Questions */}
               <div className="space-y-4">
                 {quiz.questions?.map((question, index) => (

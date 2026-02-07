@@ -1,6 +1,7 @@
 const express = require('express');
 const prisma = require('../config/database');
 const { authenticate } = require('../middleware/auth');
+const { updateCourseProgress } = require('../utils/progress');
 
 const router = express.Router();
 
@@ -38,35 +39,7 @@ router.post('/lesson/:lessonId', authenticate, async (req, res) => {
     });
 
     if (lesson) {
-      const totalLessons = await prisma.lesson.count({
-        where: { courseId: lesson.courseId }
-      });
-
-      const completedLessons = await prisma.progress.count({
-        where: {
-          userId,
-          completed: true,
-          lesson: {
-            courseId: lesson.courseId
-          }
-        }
-      });
-
-      const progressPercentage = (completedLessons / totalLessons) * 100;
-
-      await prisma.enrollment.update({
-        where: {
-          userId_courseId: {
-            userId,
-            courseId: lesson.courseId
-          }
-        },
-        data: {
-          progressPercentage,
-          status: progressPercentage === 100 ? 'COMPLETED' : 'ACTIVE',
-          completedAt: progressPercentage === 100 ? new Date() : null
-        }
-      });
+      await updateCourseProgress(userId, lesson.courseId);
     }
 
     res.json(progress);
