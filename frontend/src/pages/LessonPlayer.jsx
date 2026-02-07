@@ -14,6 +14,7 @@ const LessonPlayer = () => {
   const [progressData, setProgressData] = useState([])
   const [completed, setCompleted] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   // Use a ref to track if component is mounted to prevent state updates on unmount
@@ -21,7 +22,9 @@ const LessonPlayer = () => {
 
   // Helper to extract YouTube video ID
   const getYouTubeId = (url) => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+    if (!url) return null;
+    // Handle standard YouTube URLs
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/|live\/)([^#&?]*).*/
     const match = url.match(regExp)
     return (match && match[2].length === 11) ? match[2] : null
   }
@@ -33,10 +36,31 @@ const LessonPlayer = () => {
   }, [])
 
   useEffect(() => {
+    console.log('[MOUNT] LessonPlayer mounted for lesson ID:', id)
+    isMounted.current = true
+    
     fetchLesson()
+    
+    // Failsafe: Force stop loading after 20 seconds
+    const failsafeTimeout = setTimeout(() => {
+      console.error('[FAILSAFE] Forcing loading to stop after 20 seconds')
+      if (isMounted.current) {
+        setLoading(false)
+        if (!lesson) {
+          setError('Loading took too long. Please check your network connection and try refreshing.')
+        }
+      }
+    }, 20000)
+    
     // On mobile, auto-close sidebar
     if (window.innerWidth < 768) {
       setSidebarOpen(false)
+    }
+    
+    return () => {
+      console.log('[UNMOUNT] LessonPlayer unmounting')
+      isMounted.current = false
+      clearTimeout(failsafeTimeout)
     }
   }, [id])
 
@@ -53,49 +77,117 @@ const LessonPlayer = () => {
 
   const fetchLesson = async () => {
     setLoading(true)
+    setError(null)
+    
+    console.log('[FETCH START] fetchLesson called at', new Date().toLocaleTimeString())
+    console.log('[FETCH START] Lesson ID:', id)
+    console.log('[FETCH START] API baseURL:', api.defaults.baseURL)
 
     const timeoutId = setTimeout(() => {
       if (isMounted.current) {
         setLoading(false)
-        console.error('Fetch lesson timed out')
-        toast.error('Loading timed out - check connection')
+        setError('Request timed out. Please check your connection and backend server.')
+        console.error('[TIMEOUT] Fetch lesson timed out after 15 seconds')
+        try {
+          toast?.error?.('Loading timed out - check connection')
+        } catch (e) {
+          console.error('[TIMEOUT] Toast not available', e)
+        }
       }
-    }, 10000)
+    }, 15000) // Increase timeout to 15 seconds
 
     try {
       // 1. Fetch main lesson
-      const lessonRes = await api.get(`/lessons/${id}`, { timeout: 8000 })
-
-      if (!isMounted.current) return
-
-      setLesson(lessonRes.data)
-      setLoading(false)
-
-      clearTimeout(timeoutId)
-
-      // 2. Fetch related data
-      try {
-        const courseId = lessonRes.data.courseId
-        const [courseLessonsRes, progressRes] = await Promise.all([
-          api.get(`/lessons/course/${courseId}`, { timeout: 8000 }),
-          api.get(`/progress/course/${courseId}`, { timeout: 8000 })
-        ])
-
-        if (isMounted.current) {
-          setAllLessons(courseLessonsRes.data)
-          setProgressData(progressRes.data)
-          const lessonProgress = progressRes.data.find(p => p.id === parseInt(id))
-          setCompleted(lessonProgress?.completed || false)
+      console.log('[API CALL] Calling GET /api/lessons/' + id)
+      const lessonRes = await api.get(`/lessons/${id}`, { 
+        timeout: 12000,
+        validateStatus: function (status) {
+          // Accept any status code less than 500
+          return status < 500
         }
-      } catch (innerError) {
-        console.error('Failed to fetch related data', innerError)
+      })
+      console.log('[API RESPONSE] Status:', lessonRes.status)
+      console.log('[API RESPONSE] Data:', lessonRes.data)
+
+      if (lessonRes.status === 401) {
+        console.warn('[API WARNING] Got 401 but continuing anyway for public lesson')
+        // For public lessons, try without auth
+        const publicRes = await fetch(`/api/lessons/${id}`)
+        if (publicRes.ok) {
+          const data = await publicRes.json()
+          lessonRes.data = data
+          console.log('[API FALLBACK] Got data via fetch:', data)
+        } else {
+          throw new Error('Lesson not found or not accessible')
+        }
       }
-    } catch (error) {
-      console.error('Failed to fetch lesson', error)
-      toast.error('Failed to load lesson content')
-      if (isMounted.current) setLoading(false)
-    } finally {
+
+      if (!isMounted.current) {
+        console.log('[UNMOUNTED] Component unmounted during API call, aborting')
+        clearTimeout(timeoutId)
+        return
+      }
+
+      // Set lesson data and immediately stop loading
+      console.log('[SUCCESS] Setting lesson data:', lessonRes.data.title)
+      setLesson(lessonRes.data)
+      console.log('[SUCCESS] Stopping loading state')
+      setLoading(false)
       clearTimeout(timeoutId)
+      console.log('[SUCCESS] ✅ Lesson loaded successfully, video should render now!')
+
+      // 2. Fetch related data in background (don't block rendering)
+      setTimeout(async () => {
+        try {
+          const courseId = lessonRes.data.courseId
+          console.log('[BACKGROUND] Fetching related data for course', courseId)
+          
+          const [courseLessonsRes, progressRes] = await Promise.all([
+            api.get(`/lessons/course/${courseId}`, { timeout: 8000 }).catch(e => {
+              console.warn('[BACKGROUND] Failed to fetch course lessons:', e.message)
+              return { data: [] }
+            }),
+            api.get(`/progress/course/${courseId}`, { timeout: 8000 }).catch(e => {
+              console.warn('[BACKGROUND] Failed to fetch progress:', e.message)
+              return { data: [] }
+            })
+          ])
+
+          if (isMounted.current) {
+            setAllLessons(courseLessonsRes.data)
+            setProgressData(progressRes.data)
+            const lessonProgress = progressRes.data.find(p => p.id === parseInt(id))
+            setCompleted(lessonProgress?.completed || false)
+            console.log('[BACKGROUND] ✅ Related data loaded')
+          }
+        } catch (innerError) {
+          console.error('[BACKGROUND] Failed to fetch related data', innerError)
+          // Don't show error to user, just log it
+        }
+      }, 100)
+      
+    } catch (error) {
+      clearTimeout(timeoutId)
+      console.error('[ERROR] ❌ Failed to fetch lesson', error)
+      console.error('[ERROR] Error name:', error.name)
+      console.error('[ERROR] Error message:', error.message)
+      console.error('[ERROR] Error stack:', error.stack)
+      console.error('[ERROR] Response:', error.response?.data)
+      console.error('[ERROR] Status:', error.response?.status)
+      console.error('[ERROR] URL:', error.config?.url)
+      
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to load lesson'
+      
+      try {
+        toast?.error?.('Failed to load lesson: ' + errorMsg)
+      } catch (e) {
+        console.error('[ERROR] Toast not available', e)
+      }
+
+      if (isMounted.current) {
+        setError(errorMsg)
+        setLoading(false)
+      }
     }
   }
 
@@ -156,17 +248,57 @@ const LessonPlayer = () => {
         ) : (
           <video controls className="w-full h-full">
             <source src={lesson.contentUrl} type="video/mp4" />
+            Your browser does not support the video tag.
           </video>
         )}
       </div>
     )
   }, [lesson?.id, lesson?.contentUrl])
 
-  if (loading) {
+  if (loading && !lesson) {
     return (
-      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center space-y-4">
+      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center space-y-4 p-4">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-        <p className="text-gray-400">Loading lesson content...</p>
+        <p className="text-gray-400">Loading lesson content... ({new Date().toLocaleTimeString()})</p>
+        <p className="text-gray-500 text-sm">Lesson ID: {id}</p>
+        <div className="mt-6 space-y-2 text-center">
+          <p className="text-gray-600 text-xs">If stuck loading:</p>
+          <div className="space-x-2">
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+            >
+              Refresh Page
+            </button>
+            <button 
+              onClick={() => {
+                console.log('=== DIAGNOSTIC INFO ===')
+                console.log('Lesson ID:', id)
+                console.log('Has token:', !!localStorage.getItem('token'))
+                console.log('Has user:', !!localStorage.getItem('user'))
+                console.log('API baseURL:', api.defaults.baseURL)
+                alert('Check console (F12) for diagnostic info')
+                fetchLesson()
+              }} 
+              className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
+            >
+              Retry Load
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-4">
+        <AlertCircle size={48} className="text-red-500 mb-4" />
+        <p className="text-white text-xl mb-2">Error Loading Lesson</p>
+        <p className="text-gray-400 mb-6">{error}</p>
+        <Button onClick={() => window.location.reload()} variant="primary">
+          Retry
+        </Button>
       </div>
     )
   }

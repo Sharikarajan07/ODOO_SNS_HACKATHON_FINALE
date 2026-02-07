@@ -14,17 +14,21 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth()
 
   if (loading) {
+    console.log('[ProtectedRoute] Auth loading...')
     return <div className="flex items-center justify-center h-screen">Loading...</div>
   }
 
   if (!user) {
+    console.log('[ProtectedRoute] No user, redirecting to login')
     return <Navigate to="/login" />
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
+    console.log('[ProtectedRoute] User role not allowed:', user.role, 'Required:', allowedRoles)
     return <Navigate to="/" />
   }
 
+  console.log('[ProtectedRoute] Access granted for:', user.role)
   return children
 }
 
@@ -79,7 +83,7 @@ const AppRoutes = () => {
       } />
       <Route path="/lesson/:id" element={
         <ProtectedRoute>
-          <LessonPlayer />
+          <LessonPlayer key={window.location.pathname} />
         </ProtectedRoute>
       } />
       <Route path="/quiz/:quizId" element={

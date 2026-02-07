@@ -41,6 +41,15 @@ export function LessonPlayer({ courseId, lessonId, onNavigate }: Props) {
   const { user, courses, setCourses, updateUser } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
+  // Helper function to extract YouTube video ID from various URL formats
+  const getYouTubeId = (url: string): string | null => {
+    if (!url) return null
+    // Handle standard YouTube URLs, shorts, live streams, and embed URLs
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/|live\/)([^#&?]*).*/
+    const match = url.match(regExp)
+    return (match && match[2].length === 11) ? match[2] : null
+  }
+
   const course = courses.find((c) => c.id === courseId)
   if (!course) {
     return <div className="flex items-center justify-center p-16"><p className="text-muted-foreground">Course not found</p></div>
@@ -181,23 +190,74 @@ export function LessonPlayer({ courseId, lessonId, onNavigate }: Props) {
         <div className="flex-1 overflow-y-auto">
           <div className="mx-auto max-w-4xl p-4 lg:p-8">
             {/* Lesson content area */}
-            <div className="mb-6 flex aspect-video items-center justify-center rounded-xl bg-foreground/5 border border-border">
+            <div className="mb-6 aspect-video rounded-xl bg-black border border-border overflow-hidden shadow-2xl">
               {currentLesson?.type === "video" ? (
-                <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                  <PlayCircle className="h-16 w-16" />
-                  <p className="text-sm">Video Player</p>
-                  <p className="text-xs">Content would load from: {currentLesson.contentUrl}</p>
-                </div>
+                <>
+                  {currentLesson.contentUrl && (currentLesson.contentUrl.includes('youtube') || currentLesson.contentUrl.includes('youtu.be')) ? (
+                    <iframe
+                      src={`https://www.youtube.com/embed/${getYouTubeId(currentLesson.contentUrl)}?rel=0&modestbranding=1&autoplay=0`}
+                      className="w-full h-full"
+                      allowFullScreen
+                      title={currentLesson.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      loading="lazy"
+                    />
+                  ) : currentLesson.contentUrl ? (
+                    <video controls className="w-full h-full">
+                      <source src={currentLesson.contentUrl} type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                        <PlayCircle className="h-16 w-16" />
+                        <p className="text-sm">No video URL provided</p>
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : currentLesson?.type === "document" ? (
-                <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                  <FileText className="h-16 w-16" />
-                  <p className="text-sm">Document Viewer</p>
-                  <p className="text-xs">{currentLesson.title}</p>
+                <div className="flex h-full items-center justify-center bg-foreground/5">
+                  {currentLesson.contentUrl?.endsWith('.pdf') ? (
+                    <iframe 
+                      src={`https://docs.google.com/viewer?url=${encodeURIComponent(currentLesson.contentUrl)}&embedded=true`} 
+                      className="w-full h-full border-none"
+                      title={currentLesson.title}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                      <FileText className="h-16 w-16" />
+                      <p className="text-sm">Document Viewer</p>
+                      <p className="text-xs">{currentLesson.title}</p>
+                      {currentLesson.contentUrl && (
+                        <Button onClick={() => window.open(currentLesson.contentUrl, '_blank')}>
+                          Open Document
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
+              ) : currentLesson?.type === "image" ? (
+                currentLesson.contentUrl ? (
+                  <img 
+                    src={currentLesson.contentUrl} 
+                    alt={currentLesson.title} 
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center bg-foreground/5">
+                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                      <ImageIcon className="h-16 w-16" />
+                      <p className="text-sm">No image provided</p>
+                    </div>
+                  </div>
+                )
               ) : (
-                <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                  <ImageIcon className="h-16 w-16" />
-                  <p className="text-sm">Image Content</p>
+                <div className="flex h-full items-center justify-center bg-foreground/5">
+                  <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                    <PlayCircle className="h-16 w-16" />
+                    <p className="text-sm">Unknown content type</p>
+                  </div>
                 </div>
               )}
             </div>
