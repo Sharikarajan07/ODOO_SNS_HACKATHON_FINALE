@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react'
 import Layout from '../components/Layout'
 import { Card, Button, Badge } from '../components/ui'
-import { Users, Mail, Calendar, Award } from 'lucide-react'
+import { Users, Mail, Calendar, Award, X, BookOpen, TrendingUp } from 'lucide-react'
 import api from '../services/api'
 
 const LearnersPage = () => {
   const [learners, setLearners] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedLearner, setSelectedLearner] = useState(null)
+  const [learnerDetails, setLearnerDetails] = useState(null)
+  const [detailsLoading, setDetailsLoading] = useState(false)
 
   useEffect(() => {
     fetchLearners()
@@ -23,6 +26,36 @@ const LearnersPage = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const fetchLearnerDetails = async (learnerId) => {
+    setDetailsLoading(true)
+    try {
+      const [enrollmentsRes, progressRes] = await Promise.all([
+        api.get(`/enrollments/user/${learnerId}`),
+        api.get(`/progress/user/${learnerId}`)
+      ])
+      
+      setLearnerDetails({
+        enrollments: enrollmentsRes.data || [],
+        progress: progressRes.data || []
+      })
+    } catch (error) {
+      console.error('Failed to fetch learner details', error)
+      setLearnerDetails({ enrollments: [], progress: [] })
+    } finally {
+      setDetailsLoading(false)
+    }
+  }
+
+  const handleViewDetails = (learner) => {
+    setSelectedLearner(learner)
+    fetchLearnerDetails(learner.id)
+  }
+
+  const closeModal = () => {
+    setSelectedLearner(null)
+    setLearnerDetails(null)
   }
 
   const filteredLearners = learners.filter(learner =>
@@ -124,7 +157,12 @@ const LearnersPage = () => {
                         <Badge variant="success">Active</Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <Button size="sm" variant="ghost" className="text-indigo-600 hover:text-indigo-800">
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="text-indigo-600 hover:text-indigo-800"
+                          onClick={() => handleViewDetails(learner)}
+                        >
                           View Details
                         </Button>
                       </td>
@@ -174,6 +212,134 @@ const LearnersPage = () => {
             </div>
           </Card>
         </div>
+
+        {/* Learner Details Modal */}
+        {selectedLearner && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              {/* Modal Header */}
+              <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-2xl">
+                    {selectedLearner.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900">{selectedLearner.name}</h3>
+                    <p className="text-gray-600 flex items-center mt-1">
+                      <Mail size={14} className="mr-2" />
+                      {selectedLearner.email}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={closeModal}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 space-y-6">
+                {detailsLoading ? (
+                  <div className="text-center py-12 text-gray-500">
+                    Loading details...
+                  </div>
+                ) : learnerDetails ? (
+                  <>
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <Card className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                            <BookOpen size={20} className="text-indigo-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Enrolled Courses</p>
+                            <p className="text-2xl font-bold text-indigo-600">
+                              {learnerDetails.enrollments.length}
+                            </p>
+                          </div>
+                        </div>
+                      </Card>
+
+                      <Card className="p-4 bg-gradient-to-br from-green-50 to-emerald-50">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                            <TrendingUp size={20} className="text-emerald-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Lessons Completed</p>
+                            <p className="text-2xl font-bold text-emerald-600">
+                              {learnerDetails.progress.filter(p => p.completed).length}
+                            </p>
+                          </div>
+                        </div>
+                      </Card>
+                    </div>
+
+                    {/* Enrolled Courses */}
+                    <div>
+                      <h4 className="text-lg font-bold text-gray-900 mb-4">Enrolled Courses</h4>
+                      {learnerDetails.enrollments.length === 0 ? (
+                        <Card className="p-6 text-center text-gray-500">
+                          No enrollments yet
+                        </Card>
+                      ) : (
+                        <div className="space-y-3">
+                          {learnerDetails.enrollments.map((enrollment) => (
+                            <Card key={enrollment.id} className="p-4 hover:shadow-md transition-shadow">
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <h5 className="font-semibold text-gray-900">
+                                    {enrollment.course?.title || 'Course'}
+                                  </h5>
+                                  <div className="flex items-center space-x-4 mt-2">
+                                    <Badge variant={enrollment.status === 'ACTIVE' ? 'success' : 'secondary'}>
+                                      {enrollment.status}
+                                    </Badge>
+                                    {enrollment.progressPercentage !== undefined && (
+                                      <span className="text-sm text-gray-600">
+                                        Progress: {enrollment.progressPercentage}%
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Account Info */}
+                    <div>
+                      <h4 className="text-lg font-bold text-gray-900 mb-4">Account Information</h4>
+                      <Card className="p-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm text-gray-600">Role</p>
+                            <Badge variant="secondary" className="mt-1">{selectedLearner.role}</Badge>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">Member Since</p>
+                            <p className="text-sm font-medium text-gray-900 mt-1">
+                              {new Date(selectedLearner.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      </Card>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    Failed to load details
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   )

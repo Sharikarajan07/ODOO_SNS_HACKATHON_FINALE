@@ -1,6 +1,6 @@
 const express = require('express');
 const prisma = require('../config/database');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -88,6 +88,33 @@ router.get('/my', authenticate, async (req, res) => {
     });
 
     res.json(enrichedEnrollments);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch enrollments' });
+  }
+});
+
+// Get enrollments by user ID (Admin only)
+router.get('/user/:userId', authenticate, authorize('ADMIN'), async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+
+    const enrollments = await prisma.enrollment.findMany({
+      where: { userId },
+      include: {
+        course: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            image: true
+          }
+        }
+      },
+      orderBy: { enrolledAt: 'desc' }
+    });
+
+    res.json(enrollments);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to fetch enrollments' });

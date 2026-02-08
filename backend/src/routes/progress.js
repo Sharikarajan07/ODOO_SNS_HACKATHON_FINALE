@@ -1,6 +1,6 @@
 const express = require('express');
 const prisma = require('../config/database');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 const { updateCourseProgress } = require('../utils/progress');
 
 const router = express.Router();
@@ -78,6 +78,38 @@ router.get('/course/:courseId', authenticate, async (req, res) => {
     });
 
     res.json(lessonsWithProgress);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch progress' });
+  }
+});
+
+// Get all progress for a user (Admin only)
+router.get('/user/:userId', authenticate, authorize('ADMIN'), async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+
+    const progress = await prisma.progress.findMany({
+      where: { userId },
+      include: {
+        lesson: {
+          select: {
+            id: true,
+            title: true,
+            courseId: true,
+            course: {
+              select: {
+                id: true,
+                title: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: { lastViewed: 'desc' }
+    });
+
+    res.json(progress);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to fetch progress' });
