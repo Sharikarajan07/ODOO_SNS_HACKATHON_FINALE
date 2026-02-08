@@ -23,6 +23,29 @@ router.get('/', authenticate, authorize('ADMIN'), async (req, res) => {
     }
 });
 
+// Get all learners (Admin only)
+router.get('/learners', authenticate, authorize('ADMIN'), async (req, res) => {
+    try {
+        const learners = await prisma.user.findMany({
+            where: {
+                role: 'LEARNER'
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                createdAt: true
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(learners);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch learners' });
+    }
+});
+
 // Update user profile
 router.put('/:id', authenticate, async (req, res) => {
     try {

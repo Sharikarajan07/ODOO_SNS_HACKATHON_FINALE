@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, BookOpen, Users, BarChart3, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, BookOpen, Users, BarChart3, TrendingUp, Settings, LogOut, GraduationCap } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const Sidebar = () => {
@@ -18,6 +18,7 @@ const Sidebar = () => {
         { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard' },
         { icon: BookOpen, label: 'Courses', path: '/admin/courses' },
         { icon: Users, label: 'Learners', path: '/admin/learners' },
+        { icon: TrendingUp, label: 'Analytics', path: '/admin/analytics' },
         { icon: BarChart3, label: 'Reports', path: '/admin/reporting/all' },
         { icon: Settings, label: 'Settings', path: '/admin/settings' },
     ]
@@ -26,8 +27,8 @@ const Sidebar = () => {
         <div className="h-screen w-64 bg-slate-900 text-white flex flex-col fixed left-0 top-0 border-r border-slate-800 shadow-2xl z-50">
             {/* Brand */}
             <div className="p-6 flex items-center space-x-3 border-b border-slate-800">
-                <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                    <span className="font-bold text-lg">L</span>
+                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                    <GraduationCap size={24} className="text-white" />
                 </div>
                 <span className="text-xl font-bold tracking-tight">LearnSphere</span>
             </div>

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import { Button, Input, Card, Select } from '../components/ui'
+import { GraduationCap } from 'lucide-react'
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -61,6 +62,11 @@ const Register = () => {
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-xl">
+              <GraduationCap size={36} className="text-white" />
+            </div>
+          </div>
           <h1 className="text-3xl font-bold text-primary-600 mb-2">LearnSphere</h1>
           <p className="text-gray-600">Create your account</p>
         </div>

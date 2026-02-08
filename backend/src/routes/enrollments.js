@@ -4,6 +4,35 @@ const { authenticate, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Get all enrollments (Admin only)
+router.get('/', authenticate, authorize('ADMIN'), async (req, res) => {
+  try {
+    const enrollments = await prisma.enrollment.findMany({
+      include: {
+        course: {
+          select: {
+            id: true,
+            title: true
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      },
+      orderBy: { enrolledAt: 'desc' }
+    });
+
+    res.json(enrollments);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch enrollments' });
+  }
+});
+
 // Enroll in a course
 router.post('/', authenticate, async (req, res) => {
   try {
@@ -53,6 +82,7 @@ router.post('/', authenticate, async (req, res) => {
 router.get('/my', authenticate, async (req, res) => {
   try {
     const userId = req.user.id;
+    console.log(`[/enrollments/my] User ID: ${userId}`);
 
     const enrollments = await prisma.enrollment.findMany({
       where: { userId },
@@ -69,6 +99,11 @@ router.get('/my', authenticate, async (req, res) => {
         }
       },
       orderBy: { enrolledAt: 'desc' }
+    });
+
+    console.log(`[/enrollments/my] Found ${enrollments.length} enrollments`);
+    enrollments.forEach(e => {
+      console.log(`  - Course: ${e.course.title}, Progress: ${e.progressPercentage}%, Status: ${e.status}`);
     });
 
     // Add average rating to each course
@@ -89,7 +124,7 @@ router.get('/my', authenticate, async (req, res) => {
 
     res.json(enrichedEnrollments);
   } catch (error) {
-    console.error(error);
+    console.error('[/enrollments/my] Error:', error);
     res.status(500).json({ error: 'Failed to fetch enrollments' });
   }
 });

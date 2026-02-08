@@ -5,6 +5,42 @@ const { updateCourseProgress } = require('../utils/progress');
 
 const router = express.Router();
 
+// Get all progress (Admin only)
+router.get('/', authenticate, authorize('ADMIN'), async (req, res) => {
+  try {
+    const progress = await prisma.progress.findMany({
+      include: {
+        lesson: {
+          select: {
+            id: true,
+            title: true,
+            courseId: true,
+            course: {
+              select: {
+                id: true,
+                title: true
+              }
+            }
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      },
+      orderBy: { lastViewed: 'desc' }
+    });
+
+    res.json(progress);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch progress' });
+  }
+});
+
 // Update lesson progress
 router.post('/lesson/:lessonId', authenticate, async (req, res) => {
   try {
@@ -80,6 +116,45 @@ router.get('/course/:courseId', authenticate, async (req, res) => {
     res.json(lessonsWithProgress);
   } catch (error) {
     console.error(error);
+    res.status(500).json({ error: 'Failed to fetch progress' });
+  }
+});
+
+// Get user's own progress (all courses)
+router.get('/my', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    console.log(`[/progress/my] User ID: ${userId}`);
+
+    const progress = await prisma.progress.findMany({
+      where: { userId },
+      include: {
+        lesson: {
+          select: {
+            id: true,
+            title: true,
+            courseId: true,
+            course: {
+              select: {
+                id: true,
+                title: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: { lastViewed: 'desc' }
+    });
+
+    console.log(`[/progress/my] Found ${progress.length} progress records`);
+    const completed = progress.filter(p => p.completed).length;
+    const totalTime = progress.reduce((sum, p) => sum + p.timeSpent, 0);
+    console.log(`  - Completed: ${completed}/${progress.length}`);
+    console.log(`  - Total time: ${totalTime} minutes`);
+
+    res.json(progress);
+  } catch (error) {
+    console.error('[/progress/my] Error:', error);
     res.status(500).json({ error: 'Failed to fetch progress' });
   }
 });

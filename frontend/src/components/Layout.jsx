@@ -1,6 +1,6 @@
 import { useAuth } from '../context/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { LogOut, Home, User, BookOpen } from 'lucide-react'
+import { LogOut, Home, User, BookOpen, GraduationCap } from 'lucide-react'
 import Sidebar from './Sidebar'
 
 const Layout = ({ children, title }) => {
@@ -58,9 +58,14 @@ const Layout = ({ children, title }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-                LearnSphere
-              </h1>
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <GraduationCap size={24} className="text-white" />
+                </div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
+                  LearnSphere
+                </h1>
+              </div>
               {title && <span className="text-gray-300">|</span>}
               {title && <h2 className="text-lg text-gray-600 font-medium">{title}</h2>}
             </div>

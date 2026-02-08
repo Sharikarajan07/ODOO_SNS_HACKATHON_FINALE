@@ -3,11 +3,13 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import AdminDashboard from './pages/AdminDashboard'
+import AdminAnalytics from './pages/AdminAnalytics'
 import CourseEditor from './pages/CourseEditor'
 import LearnerDashboard from './pages/LearnerDashboard'
 import LearnerCourses from './pages/LearnerCourses'
 import LearnerExplore from './pages/LearnerExplore'
 import LearnerAchievements from './pages/LearnerAchievements'
+import LearnerAnalytics from './pages/LearnerAnalyticsSimple'
 import LearnerProfile from './pages/LearnerProfile'
 import CourseDetail from './pages/CourseDetail'
 import LessonPlayer from './pages/LessonPlayer'
@@ -92,6 +94,11 @@ const AppRoutes = () => {
           <LearnersPage />
         </ProtectedRoute>
       } />
+      <Route path="/admin/analytics" element={
+        <ProtectedRoute allowedRoles={['ADMIN']}>
+          <AdminAnalytics />
+        </ProtectedRoute>
+      } />
       <Route path="/admin/settings" element={
         <ProtectedRoute allowedRoles={['ADMIN']}>
           <SettingsPage />
@@ -112,6 +119,11 @@ const AppRoutes = () => {
       <Route path="/learner/explore" element={
         <ProtectedRoute allowedRoles={['LEARNER']}>
           <LearnerExplore />
+        </ProtectedRoute>
+      } />
+      <Route path="/learner/analytics" element={
+        <ProtectedRoute allowedRoles={['LEARNER']}>
+          <LearnerAnalytics />
         </ProtectedRoute>
       } />
       <Route path="/learner/achievements" element={

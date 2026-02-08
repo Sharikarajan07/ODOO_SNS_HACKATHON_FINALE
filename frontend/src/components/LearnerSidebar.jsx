@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Home, BookOpen, Search, LogOut, Award, TrendingUp, X } from 'lucide-react'
+import { Home, BookOpen, Search, LogOut, Award, TrendingUp, X, GraduationCap } from 'lucide-react'
 
 const LearnerSidebar = ({ isOpen, onClose }) => {
   const navigate = useNavigate()
@@ -37,6 +37,12 @@ const LearnerSidebar = ({ isOpen, onClose }) => {
       active: location.pathname === '/learner/explore'
     },
     {
+      icon: TrendingUp,
+      label: 'Analytics',
+      path: '/learner/analytics',
+      active: location.pathname === '/learner/analytics'
+    },
+    {
       icon: Award,
       label: 'Achievements',
       path: '/learner/achievements',
@@ -60,11 +66,16 @@ const LearnerSidebar = ({ isOpen, onClose }) => {
       }`}>
         {/* Logo/Brand */}
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-              LearnSphere
-            </h1>
-            <p className="text-sm text-gray-500 mt-1">Learning Platform</p>
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg">
+              <GraduationCap size={28} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
+                LearnSphere
+              </h1>
+              <p className="text-xs text-gray-500">Learning Platform</p>
+            </div>
           </div>
           {/* Close button for mobile */}
           <button
