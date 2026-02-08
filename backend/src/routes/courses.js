@@ -30,6 +30,9 @@ router.get('/', authenticate, async (req, res) => {
           select: {
             lessons: true,
             enrollments: true,
+            lessons: true,
+            quizzes: true,
+            enrollments: true,
             reviews: true
           }
         },
@@ -49,6 +52,9 @@ router.get('/', authenticate, async (req, res) => {
         ...course,
         averageRating: avgRating,
         lessonCount: course._count.lessons,
+        enrollmentCount: course._count.enrollments,
+        lessonCount: course._count.lessons,
+        quizCount: course._count.quizzes,
         enrollmentCount: course._count.enrollments,
         reviewCount: course._count.reviews
       };
@@ -93,7 +99,11 @@ router.get('/:id', authenticate, async (req, res) => {
           }
         },
         _count: {
-          select: { enrollments: true }
+          select: {
+            enrollments: true,
+            lessons: true,
+            quizzes: true
+          }
         }
       }
     });
@@ -128,7 +138,7 @@ router.get('/:id', authenticate, async (req, res) => {
 // Create course (Admin/Instructor only)
 router.post('/', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res) => {
   try {
-    const { title, description, tags, image, visibility, accessRule } = req.body;
+    const { title, description, tags, image, visibility, accessRule, price, website, responsibleId } = req.body;
 
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
@@ -141,7 +151,10 @@ router.post('/', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res
         tags: tags || [],
         image,
         visibility: visibility || 'PUBLIC',
-        accessRule: accessRule || 'FREE'
+        accessRule: accessRule || 'FREE',
+        price: price ? parseFloat(price) : 0,
+        website,
+        responsibleId: req.body.responsibleId ? parseInt(req.body.responsibleId) : req.user.id // Default to creator if not set
       }
     });
 
@@ -156,7 +169,7 @@ router.post('/', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res
 router.put('/:id', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res) => {
   try {
     const courseId = parseInt(req.params.id);
-    const { title, description, tags, image, visibility, accessRule, published } = req.body;
+    const { title, description, tags, image, visibility, accessRule, published, price, website, responsibleId } = req.body;
 
     const course = await prisma.course.update({
       where: { id: courseId },
@@ -167,7 +180,10 @@ router.put('/:id', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, r
         image,
         visibility,
         accessRule,
-        published
+        published,
+        price: price ? parseFloat(price) : 0,
+        website,
+        responsibleId: responsibleId ? parseInt(responsibleId) : undefined
       }
     });
 

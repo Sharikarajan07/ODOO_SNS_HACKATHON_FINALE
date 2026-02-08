@@ -11,6 +11,7 @@ const reviewRoutes = require('./routes/reviews');
 const reportingRoutes = require('./routes/reporting');
 
 const app = express();
+const userRoutes = require('./routes/users');
 
 // Middleware
 app.use(cors());
@@ -34,6 +35,9 @@ app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/reporting', reportingRoutes);
+// app.use('/api/upload', uploadRoutes);
+app.use('/api/users', userRoutes);
+
 
 // Health check
 app.get('/health', (req, res) => {

@@ -1,19 +1,25 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { LayoutDashboard, BookOpen, Users, BarChart3, Settings, LogOut } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const Sidebar = () => {
     const location = useLocation()
+    const navigate = useNavigate()
     const { logout } = useAuth()
 
     const isActive = (path) => location.pathname === path
 
+    const handleLogout = () => {
+        logout()
+        navigate('/login')
+    }
+
     const menuItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard' },
-        { icon: BookOpen, label: 'Courses', path: '/admin/dashboard?tab=courses' }, // Pointing to dashboard for now
-        { icon: Users, label: 'Learners', path: '/admin/dashboard?tab=learners' },   // Placeholder
-        { icon: BarChart3, label: 'Reports', path: '/admin/dashboard?tab=reports' }, // Placeholder
-        { icon: Settings, label: 'Settings', path: '/admin/settings' },              // Placeholder
+        { icon: BookOpen, label: 'Courses', path: '/admin/courses' },
+        { icon: Users, label: 'Learners', path: '/admin/learners' },
+        { icon: BarChart3, label: 'Reports', path: '/admin/reporting/all' },
+        { icon: Settings, label: 'Settings', path: '/admin/settings' },
     ]
 
     return (
@@ -50,7 +56,7 @@ const Sidebar = () => {
             {/* User & Logout */}
             <div className="p-4 border-t border-slate-800 bg-slate-900/50">
                 <button
-                    onClick={logout}
+                    onClick={handleLogout}
                     className="flex items-center space-x-3 px-4 py-3 w-full rounded-lg text-slate-400 hover:bg-slate-800 hover:text-red-400 transition-colors"
                 >
                     <LogOut size={20} />

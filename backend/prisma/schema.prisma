@@ -7,6 +7,184 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                 Int           @id @default(autoincrement())
+  name               String
+  email              String        @unique
+  password           String
+  role               UserRole      @default(LEARNER)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  responsibleCourses Course[]      @relation("CourseResponsible")
+  enrollments        Enrollment[]
+  responsibleLessons Lesson[]      @relation("LessonResponsible")
+  points             Points?
+  progress           Progress[]
+  quizAttempts       QuizAttempt[]
+  reviews            Review[]
+
+  @@index([email])
+}
+
+model Course {
+  id            Int              @id @default(autoincrement())
+  title         String
+  description   String?
+  tags          String[]
+  image         String?
+  published     Boolean          @default(false)
+  visibility    CourseVisibility @default(PUBLIC)
+  accessRule    AccessRule       @default(FREE)
+  price         Float            @default(0)
+  viewCount     Int              @default(0)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  responsibleId Int?
+  website       String?
+  responsible   User?            @relation("CourseResponsible", fields: [responsibleId], references: [id])
+  enrollments   Enrollment[]
+  lessons       Lesson[]
+  quizzes       Quiz[]
+  reviews       Review[]
+
+  @@index([published])
+}
+
+model Lesson {
+  id            Int                @id @default(autoincrement())
+  courseId      Int
+  title         String
+  type          LessonType
+  contentUrl    String
+  description   String?
+  order         Int
+  duration      Int                @default(0)
+  allowDownload Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  responsibleId Int?
+  course        Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  responsible   User?              @relation("LessonResponsible", fields: [responsibleId], references: [id])
+  attachments   LessonAttachment[]
+  progress      Progress[]
+
+  @@index([courseId])
+  @@index([order])
+}
+
+model LessonAttachment {
+  id       Int    @id @default(autoincrement())
+  lessonId Int
+  type     String
+  url      String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([lessonId])
+}
+
+model Quiz {
+  id        Int            @id @default(autoincrement())
+  courseId  Int
+  title     String         @default("Course Quiz")
+  rewards   Json           @default("{\"attempt1\": 10, \"attempt2\": 7, \"attempt3\": 5, \"attempt4\": 3}")
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  course    Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  attempts  QuizAttempt[]
+  questions QuizQuestion[]
+
+  @@index([courseId])
+}
+
+model QuizQuestion {
+  id           Int          @id @default(autoincrement())
+  quizId       Int
+  questionText String
+  order        Int          @default(0)
+  options      QuizOption[]
+  quiz         Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([quizId])
+}
+
+model QuizOption {
+  id         Int          @id @default(autoincrement())
+  questionId Int
+  optionText String
+  isCorrect  Boolean      @default(false)
+  question   QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+}
+
+model QuizAttempt {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  quizId    Int
+  attemptNo Int
+  score     Float
+  createdAt DateTime @default(now())
+  quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([quizId])
+}
+
+model Enrollment {
+  id                 Int              @id @default(autoincrement())
+  userId             Int
+  courseId           Int
+  status             EnrollmentStatus @default(ACTIVE)
+  progressPercentage Float            @default(0)
+  enrolledAt         DateTime         @default(now())
+  completedAt        DateTime?
+  course             Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+}
+
+model Progress {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  lessonId   Int
+  completed  Boolean  @default(false)
+  timeSpent  Int      @default(0)
+  lastViewed DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  lesson     Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@index([lessonId])
+}
+
+model Points {
+  id          Int    @id @default(autoincrement())
+  userId      Int    @unique
+  totalPoints Int    @default(0)
+  badge       String @default("Beginner")
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  courseId  Int
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+}
+
 enum UserRole {
   ADMIN
   INSTRUCTOR
@@ -36,187 +214,4 @@ enum LessonType {
   VIDEO
   DOCUMENT
   IMAGE
-}
-
-model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  role      UserRole @default(LEARNER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  enrollments  Enrollment[]
-  progress     Progress[]
-  points       Points?
-  reviews      Review[]
-  quizAttempts QuizAttempt[]
-
-  @@index([email])
-}
-
-model Course {
-  id          Int              @id @default(autoincrement())
-  title       String
-  description String?
-  tags        String[]
-  image       String?
-  published   Boolean          @default(false)
-  visibility  CourseVisibility @default(PUBLIC)
-  accessRule  AccessRule       @default(FREE)
-  price       Float            @default(0)
-  viewCount   Int              @default(0)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-
-  lessons     Lesson[]
-  quizzes     Quiz[]
-  enrollments Enrollment[]
-  reviews     Review[]
-
-  @@index([published])
-}
-
-model Lesson {
-  id            Int        @id @default(autoincrement())
-  courseId      Int
-  title         String
-  type          LessonType
-  contentUrl    String
-  description   String?
-  order         Int
-  duration      Int        @default(0)
-  allowDownload Boolean    @default(true)
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-
-  course      Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  attachments LessonAttachment[]
-  progress    Progress[]
-
-  @@index([courseId])
-  @@index([order])
-}
-
-model LessonAttachment {
-  id       Int    @id @default(autoincrement())
-  lessonId Int
-  type     String
-  url      String
-
-  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-
-  @@index([lessonId])
-}
-
-model Quiz {
-  id        Int      @id @default(autoincrement())
-  courseId  Int
-  title     String   @default("Course Quiz")
-  rewards   Json     @default("{\"attempt1\": 10, \"attempt2\": 7, \"attempt3\": 5, \"attempt4\": 3}")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  course    Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  questions QuizQuestion[]
-  attempts  QuizAttempt[]
-
-  @@index([courseId])
-}
-
-model QuizQuestion {
-  id           Int    @id @default(autoincrement())
-  quizId       Int
-  questionText String
-  order        Int    @default(0)
-
-  quiz    Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  options QuizOption[]
-
-  @@index([quizId])
-}
-
-model QuizOption {
-  id         Int     @id @default(autoincrement())
-  questionId Int
-  optionText String
-  isCorrect  Boolean @default(false)
-
-  question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  @@index([questionId])
-}
-
-model QuizAttempt {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  quizId    Int
-  attemptNo Int
-  score     Float
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([quizId])
-}
-
-model Enrollment {
-  id                 Int              @id @default(autoincrement())
-  userId             Int
-  courseId           Int
-  status             EnrollmentStatus @default(ACTIVE)
-  progressPercentage Float            @default(0)
-  enrolledAt         DateTime         @default(now())
-  completedAt        DateTime?
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, courseId])
-  @@index([userId])
-  @@index([courseId])
-}
-
-model Progress {
-  id         Int      @id @default(autoincrement())
-  userId     Int
-  lessonId   Int
-  completed  Boolean  @default(false)
-  timeSpent  Int      @default(0)
-  lastViewed DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, lessonId])
-  @@index([userId])
-  @@index([lessonId])
-}
-
-model Points {
-  id          Int    @id @default(autoincrement())
-  userId      Int    @unique
-  totalPoints Int    @default(0)
-  badge       String @default("Beginner")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Review {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  courseId  Int
-  rating    Int
-  comment   String?
-  createdAt DateTime @default(now())
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, courseId])
-  @@index([courseId])
 }

@@ -9,6 +9,7 @@ const Register = () => {
     name: '',
     email: '',
     password: '',
+    confirmPassword: '',
     role: 'LEARNER'
   })
   const [error, setError] = useState('')
@@ -29,8 +30,17 @@ const Register = () => {
     setError('')
     setLoading(true)
 
+    // Validate password match
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match')
+      setLoading(false)
+      return
+    }
+
     try {
-      const response = await api.post('/auth/register', formData)
+      // Remove confirmPassword before sending to API
+      const { confirmPassword, ...registrationData } = formData
+      const response = await api.post('/auth/register', registrationData)
       const { token, user } = response.data
       
       login(token, user)
@@ -86,6 +96,16 @@ const Register = () => {
             type="password"
             name="password"
             value={formData.password}
+            onChange={handleChange}
+            placeholder="••••••••"
+            required
+          />
+
+          <Input
+            label="Confirm Password"
+            type="password"
+            name="confirmPassword"
+            value={formData.confirmPassword}
             onChange={handleChange}
             placeholder="••••••••"
             required

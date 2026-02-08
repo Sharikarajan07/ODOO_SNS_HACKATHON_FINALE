@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BookOpen, Clock, Layers, Star, Edit, BarChart, Trash2, CheckCircle, User } from 'lucide-react'
+import { BookOpen, Clock, Layers, Star, Edit, BarChart, Trash2, CheckCircle, User, HelpCircle, Eye, Share2 } from 'lucide-react'
 import { Button, Badge, Card } from '../components/ui'
 
 const CourseCard = ({ course, enrollment, viewMode = 'grid', isAdmin = false, onDelete, onTogglePublish }) => {
@@ -125,6 +125,14 @@ const CourseCard = ({ course, enrollment, viewMode = 'grid', isAdmin = false, on
                         <div className="flex items-center space-x-4 text-xs text-gray-400 mb-4 p-3 bg-gray-50/50 rounded-lg">
                             <span className="flex items-center"><Clock size={12} className="mr-1" /> {calculateTotalDuration(course)}</span>
                             <span className="flex items-center"><Layers size={12} className="mr-1" /> {course.lessonCount || 0} Lessons</span>
+                            {course.quizCount > 0 && (
+                                <span className="flex items-center"><HelpCircle size={12} className="mr-1" /> {course.quizCount} Quiz</span>
+                            )}
+                            {course.accessRule === 'PAID' && (
+                                <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200">
+                                    ${course.price}
+                                </Badge>
+                            )}
                         </div>
                     </div>
 
@@ -161,19 +169,71 @@ const CourseCard = ({ course, enrollment, viewMode = 'grid', isAdmin = false, on
 
     // --- LIST VIEW ---
     return (
-        <div className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors group border-b border-gray-100 last:border-0">
-            <div className="flex items-center space-x-4">
-                {/* Image etc (Simplified for brevity as Grid is main focus) */}
-                <div className="w-16 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                    {/* Img code */}
+        <div className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors group border-b border-gray-100 last:border-0 cursor-pointer" onClick={() => navigate(isAdmin ? `/admin/course/${course.id}/edit` : `/course/${course.id}`)}>
+            <div className="flex items-center space-x-6 flex-1">
+                {/* Image */}
+                <div className="w-24 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 relative">
                     <img src={course.image || 'https://placehold.co/100x100?text=Course'} className="w-full h-full object-cover" onError={(e) => e.target.style.display = 'none'} />
+                    {isAdmin && (
+                        <div className="absolute top-1 right-1">
+                            <span className={`block w-2.5 h-2.5 rounded-full ring-2 ring-white ${course.published ? 'bg-emerald-500' : 'bg-amber-400'}`}></span>
+                        </div>
+                    )}
                 </div>
-                <div>
-                    <h3 className="font-semibold text-gray-900">{course.title}</h3>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center mb-1">
+                        <h3 className="font-semibold text-gray-900 truncate mr-3">{course.title}</h3>
+                        {isAdmin && (
+                            <Badge variant={course.published ? "success" : "warning"} className="text-[10px] px-1.5 py-0">
+                                {course.published ? 'Published' : 'Draft'}
+                            </Badge>
+                        )}
+                    </div>
+
+                    <div className="flex items-center text-xs text-gray-500 space-x-4">
+                        <span className="flex items-center"><Clock size={12} className="mr-1" /> {calculateTotalDuration(course)}</span>
+                        <span className="flex items-center"><Layers size={12} className="mr-1" /> {course.lessonCount || 0} Lessons</span>
+                        {course.quizCount > 0 && (
+                            <span className="flex items-center"><HelpCircle size={12} className="mr-1" /> {course.quizCount} Quiz</span>
+                        )}
+                        <span className="flex items-center"><Eye size={12} className="mr-1" /> {course.viewCount || 0} Views</span>
+                    </div>
                 </div>
+
+                {/* Tags */}
+                <div className="hidden md:flex gap-2 mr-6">
+                    {course.tags && course.tags.slice(0, 3).map((tag, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">{tag}</Badge>
+                    ))}
+                </div>
+
+                {/* Price */}
+                {course.accessRule === 'PAID' && (
+                    <div className="font-bold text-gray-900 mr-6">
+                        ${course.price}
+                    </div>
+                )}
             </div>
-            <div className="flex items-center space-x-3">
-                {getActionButton()}
+
+            <div className="flex items-center space-x-3" onClick={(e) => e.stopPropagation()}>
+                {isAdmin ? (
+                    <div className="flex space-x-2">
+                        <Button size="sm" variant="outline" onClick={() => navigate(`/admin/course/${course.id}/edit`)}>
+                            <Edit size={14} className="mr-1" /> Edit
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => {
+                            navigator.clipboard.writeText(`${window.location.origin}/course/${course.id}`);
+                            // assuming toast available or simple alert/console for now as prop not passed, but parent handles it usually. 
+                            // Actually CourseCard doesn't have useToast. Let's just do the action.
+                        }}>
+                            <Share2 size={14} />
+                        </Button>
+                    </div>
+                ) : (
+                    getActionButton()
+                )}
             </div>
         </div>
     )

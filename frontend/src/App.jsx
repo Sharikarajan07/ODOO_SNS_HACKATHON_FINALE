@@ -9,6 +9,10 @@ import CourseDetail from './pages/CourseDetail'
 import LessonPlayer from './pages/LessonPlayer'
 import QuizPage from './pages/QuizPage'
 import ReportingDashboard from './pages/ReportingDashboard'
+import QuizBuilder from './pages/QuizBuilder'
+import LearnersPage from './pages/LearnersPage'
+import SettingsPage from './pages/SettingsPage'
+import CoursesPage from './pages/CoursesPage'
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth()
@@ -54,6 +58,11 @@ const AppRoutes = () => {
           <AdminDashboard />
         </ProtectedRoute>
       } />
+      <Route path="/admin/courses" element={
+        <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
+          <CoursesPage />
+        </ProtectedRoute>
+      } />
       <Route path="/admin/course/new" element={
         <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
           <CourseEditor />
@@ -67,6 +76,21 @@ const AppRoutes = () => {
       <Route path="/admin/reporting/:courseId" element={
         <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
           <ReportingDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/course/:courseId/quiz/:quizId" element={
+        <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
+          <QuizBuilder />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/learners" element={
+        <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
+          <LearnersPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/settings" element={
+        <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
+          <SettingsPage />
         </ProtectedRoute>
       } />
 

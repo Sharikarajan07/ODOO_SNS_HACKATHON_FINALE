@@ -61,30 +61,30 @@ const LearnerDashboard = () => {
 
         {/* Profile / Stats Panel */}
         {stats && (
-          <Card className="md:w-1/3 bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-none shadow-xl transform hover:scale-[1.02] transition-transform">
-            <div className="p-4">
-              <div className="flex items-center space-x-4 mb-6">
-                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl font-bold border-2 border-white/50">
+          <Card className="md:w-1/3 gradient-bg text-white border-none shadow-2xl transform hover:scale-[1.02] transition-transform duration-300">
+            <div className="p-6">
+              <div className="flex items-center space-x-4 mb-8">
+                <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-3xl font-bold border-2 border-white/30 shadow-inner">
                   {stats.badge.charAt(0)}
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold opacity-90">My Profile</h3>
-                  <p className="text-2xl font-bold">{stats.badge}</p>
+                  <h3 className="text-sm uppercase tracking-wider opacity-80 font-semibold">Current Rank</h3>
+                  <p className="text-3xl font-bold tracking-tight">{stats.badge}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white/10 rounded-lg p-3">
-                  <p className="text-indigo-100 text-xs uppercase tracking-wider">Total Points</p>
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="bg-black/20 backdrop-blur-md rounded-xl p-4 border border-white/10">
+                  <p className="text-indigo-200 text-xs uppercase tracking-wider font-bold">Total Points</p>
                   <p className="text-3xl font-bold mt-1">{stats.totalPoints}</p>
                 </div>
-                <div className="bg-white/10 rounded-lg p-3">
-                  <p className="text-indigo-100 text-xs uppercase tracking-wider">Enrolled</p>
+                <div className="bg-black/20 backdrop-blur-md rounded-xl p-4 border border-white/10">
+                  <p className="text-indigo-200 text-xs uppercase tracking-wider font-bold">Enrolled</p>
                   <p className="text-3xl font-bold mt-1">{stats.totalEnrollments}</p>
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between text-sm text-indigo-100">
+              <div className="pt-4 border-t border-white/10 flex items-center justify-between text-sm text-indigo-100 font-medium">
                 <span>Next Level: {
                   stats.totalPoints < 20 ? 'Newbie (20)' :
                     stats.totalPoints < 40 ? 'Explorer (40)' :
@@ -93,7 +93,7 @@ const LearnerDashboard = () => {
                           stats.totalPoints < 100 ? 'Expert (100)' :
                             stats.totalPoints < 120 ? 'Master (120)' : 'Max Level'
                 }</span>
-                <Trophy size={16} />
+                <Trophy size={18} className="text-yellow-300" />
               </div>
             </div>
           </Card>

@@ -14,6 +14,8 @@ const AdminDashboard = () => {
   const [viewMode, setViewMode] = useState('grid')
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [newCourseTitle, setNewCourseTitle] = useState('')
   const navigate = useNavigate()
   const toast = useToast()
 
@@ -61,6 +63,28 @@ const AdminDashboard = () => {
       toast.success(`Course ${course.published ? 'unpublished' : 'published'} successfully`)
     } catch (error) {
       toast.error('Failed to update course status')
+    }
+  }
+
+  const handleCreateCourse = async () => {
+    if (!newCourseTitle.trim()) {
+      toast.warning('Please enter a course title')
+      return
+    }
+
+    try {
+      const response = await api.post('/courses', {
+        title: newCourseTitle,
+        description: '',
+        tags: [],
+        visibility: 'PUBLIC',
+        accessRule: 'FREE'
+      })
+      toast.success('Course created')
+      setShowCreateModal(false)
+      navigate(`/admin/course/${response.data.id}/edit`)
+    } catch (error) {
+      toast.error('Failed to create course')
     }
   }
 
@@ -165,7 +189,7 @@ const AdminDashboard = () => {
           </div>
 
           <Button
-            onClick={() => navigate('/admin/course/new')}
+            onClick={() => setShowCreateModal(true)}
             className="ml-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 shadow-md hover:shadow-lg transition-all"
           >
             <Plus size={18} className="mr-2" />
@@ -213,10 +237,33 @@ const AdminDashboard = () => {
           </div>
           <h3 className="text-lg font-bold text-gray-900 mb-1">No courses yet</h3>
           <p className="text-gray-500 mb-6 max-w-sm mx-auto">Get started by creating your first course. It only takes a few minutes.</p>
-          <Button onClick={() => navigate('/admin/course/new')}>
+          <Button onClick={() => setShowCreateModal(true)}>
             <Plus size={18} className="mr-2" />
             Create Course
           </Button>
+        </div>
+      )}
+      {/* Create Course Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-96 p-6 animate-fade-in-up">
+            <h3 className="text-xl font-bold mb-4">Create New Course</h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Course Title</label>
+              <input
+                type="text"
+                value={newCourseTitle}
+                onChange={(e) => setNewCourseTitle(e.target.value)}
+                placeholder="e.g. Advanced React Patterns"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                autoFocus
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+              <Button onClick={handleCreateCourse}>Create</Button>
+            </div>
+          </div>
         </div>
       )}
     </Layout>

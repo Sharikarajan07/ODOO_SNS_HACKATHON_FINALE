@@ -58,7 +58,7 @@ router.get('/:id', async (req, res) => {
 // Create lesson (Admin/Instructor only)
 router.post('/', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res) => {
   try {
-    const { courseId, title, type, contentUrl, description, order, attachments } = req.body;
+    const { courseId, title, type, contentUrl, description, order, attachments, responsibleId, duration, allowDownload } = req.body;
 
     if (!courseId || !title || !type || !contentUrl) {
       return res.status(400).json({ error: 'Required fields missing' });
@@ -72,6 +72,9 @@ router.post('/', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res
         contentUrl,
         description,
         order: order || 0,
+        duration: duration || 0,
+        allowDownload: allowDownload !== undefined ? allowDownload : true,
+        responsibleId: responsibleId ? parseInt(responsibleId) : req.user.id,
         attachments: attachments ? {
           create: attachments.map(att => ({
             type: att.type,
@@ -95,20 +98,48 @@ router.post('/', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res
 router.put('/:id', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res) => {
   try {
     const lessonId = parseInt(req.params.id);
-    const { title, type, contentUrl, description, order } = req.body;
+    const { title, type, contentUrl, description, order, duration, allowDownload, responsibleId, attachments } = req.body;
 
-    const lesson = await prisma.lesson.update({
-      where: { id: lessonId },
-      data: {
-        title,
-        type,
-        contentUrl,
-        description,
-        order
-      },
-      include: {
-        attachments: true
+    // Transaction to update lesson and replace attachments
+    const lesson = await prisma.$transaction(async (prisma) => {
+      // 1. Update basic fields
+      const updatedLesson = await prisma.lesson.update({
+        where: { id: lessonId },
+        data: {
+          title,
+          type,
+          contentUrl,
+          description,
+          order,
+          duration,
+          allowDownload,
+          responsibleId: responsibleId ? parseInt(responsibleId) : undefined
+        }
+      });
+
+      // 2. Handle attachments if provided
+      if (attachments) {
+        // Delete existing
+        await prisma.lessonAttachment.deleteMany({
+          where: { lessonId }
+        });
+
+        // Create new
+        if (attachments.length > 0) {
+          await prisma.lessonAttachment.createMany({
+            data: attachments.map(att => ({
+              lessonId,
+              type: att.type,
+              url: att.url
+            }))
+          });
+        }
       }
+
+      return prisma.lesson.findUnique({
+        where: { id: lessonId },
+        include: { attachments: true }
+      });
     });
 
     res.json(lesson);
