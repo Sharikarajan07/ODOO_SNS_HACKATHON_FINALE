@@ -5,6 +5,10 @@ import Register from './pages/Register'
 import AdminDashboard from './pages/AdminDashboard'
 import CourseEditor from './pages/CourseEditor'
 import LearnerDashboard from './pages/LearnerDashboard'
+import LearnerCourses from './pages/LearnerCourses'
+import LearnerExplore from './pages/LearnerExplore'
+import LearnerAchievements from './pages/LearnerAchievements'
+import LearnerProfile from './pages/LearnerProfile'
 import CourseDetail from './pages/CourseDetail'
 import LessonPlayer from './pages/LessonPlayer'
 import QuizPage from './pages/QuizPage'
@@ -98,6 +102,26 @@ const AppRoutes = () => {
       <Route path="/learner/dashboard" element={
         <ProtectedRoute allowedRoles={['LEARNER']}>
           <LearnerDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/learner/courses" element={
+        <ProtectedRoute allowedRoles={['LEARNER']}>
+          <LearnerCourses />
+        </ProtectedRoute>
+      } />
+      <Route path="/learner/explore" element={
+        <ProtectedRoute allowedRoles={['LEARNER']}>
+          <LearnerExplore />
+        </ProtectedRoute>
+      } />
+      <Route path="/learner/achievements" element={
+        <ProtectedRoute allowedRoles={['LEARNER']}>
+          <LearnerAchievements />
+        </ProtectedRoute>
+      } />
+      <Route path="/learner/profile" element={
+        <ProtectedRoute allowedRoles={['LEARNER']}>
+          <LearnerProfile />
         </ProtectedRoute>
       } />
       <Route path="/course/:id" element={

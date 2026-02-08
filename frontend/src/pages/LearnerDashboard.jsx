@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Layout from '../components/Layout'
+import LearnerSidebar from '../components/LearnerSidebar'
 import { Button, Card, Badge, Progress } from '../components/ui'
-import { Book, Trophy, Award, Clock } from 'lucide-react'
+import { Book, Trophy, Award, Clock, Menu } from 'lucide-react'
 import api from '../services/api'
 
 const LearnerDashboard = () => {
@@ -11,6 +11,7 @@ const LearnerDashboard = () => {
   const [stats, setStats] = useState(null)
   const [activeTab, setActiveTab] = useState('my-courses')
   const [loading, setLoading] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const navigate = useNavigate()
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -38,9 +39,12 @@ const LearnerDashboard = () => {
 
   if (loading) {
     return (
-      <Layout title="My Learning">
-        <div className="text-center py-12">Loading...</div>
-      </Layout>
+      <div className="min-h-screen bg-gray-50 flex">
+        <LearnerSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <div className="flex-1 md:ml-64 p-8">
+          <div className="text-center py-12">Loading...</div>
+        </div>
+      </div>
     )
   }
 
@@ -55,9 +59,33 @@ const LearnerDashboard = () => {
     .filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase()))
 
   return (
-    <Layout title="My Learning">
-      {/* Search & Stats Section */}
-      <div className="flex flex-col md:flex-row gap-6 mb-8">
+    <div className="min-h-screen bg-gray-50 flex">
+      <LearnerSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      
+      {/* Main Content */}
+      <div className="flex-1 md:ml-64 min-h-screen">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 px-4 md:px-8 py-6 sticky top-0 z-30 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="md:hidden text-gray-600 hover:text-gray-900"
+              >
+                <Menu size={24} />
+              </button>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">My Learning</h1>
+                <p className="text-sm text-gray-500 mt-1 hidden sm:block">Welcome back! Continue your learning journey</p>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Content Area */}
+        <div className="p-8">
+          {/* Search & Stats Section */}
+          <div className="flex flex-col md:flex-row gap-6 mb-8">
 
         {/* Profile / Stats Panel */}
         {stats && (
@@ -186,7 +214,12 @@ const LearnerDashboard = () => {
           )}
         </div>
       )}
-    </Layout>
+      {/* End Explore Courses Tab */}
+        </div>
+        {/* End Content Area */}
+      </div>
+      {/* End Main Content */}
+    </div>
   )
 }
 // Import CourseCard locally if not imported
