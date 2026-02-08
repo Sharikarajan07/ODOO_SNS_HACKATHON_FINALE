@@ -57,8 +57,8 @@ router.get('/:id', authenticate, async (req, res) => {
   }
 });
 
-// Update quiz details (Admin/Instructor only)
-router.put('/:id', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res) => {
+// Update quiz details (Admin only)
+router.put('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
   try {
     const quizId = parseInt(req.params.id);
     const { title, rewards } = req.body;
@@ -78,8 +78,8 @@ router.put('/:id', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, r
   }
 });
 
-// Create quiz (Admin/Instructor only)
-router.post('/', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res) => {
+// Create quiz (Admin only)
+router.post('/', authenticate, authorize('ADMIN'), async (req, res) => {
   try {
     const { courseId, title, questions } = req.body;
 
@@ -121,8 +121,8 @@ router.post('/', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res
   }
 });
 
-// Add question to quiz (Admin/Instructor only)
-router.post('/:quizId/questions', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res) => {
+// Add question to quiz (Admin only)
+router.post('/:quizId/questions', authenticate, authorize('ADMIN'), async (req, res) => {
   try {
     const quizId = parseInt(req.params.quizId);
     const { questionText, options } = req.body;

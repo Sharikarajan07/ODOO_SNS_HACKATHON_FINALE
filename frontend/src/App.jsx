@@ -51,49 +51,49 @@ const AppRoutes = () => {
       <Route path="/" element={
         user ? (
           user.role === 'LEARNER' ? <Navigate to="/learner/dashboard" /> :
-            user.role === 'ADMIN' || user.role === 'INSTRUCTOR' ? <Navigate to="/admin/dashboard" /> :
+            user.role === 'ADMIN' ? <Navigate to="/admin/dashboard" /> :
               <Navigate to="/login" />
         ) : <Navigate to="/login" />
       } />
 
-      {/* Admin/Instructor Routes */}
+      {/* Admin Routes */}
       <Route path="/admin/dashboard" element={
-        <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
+        <ProtectedRoute allowedRoles={['ADMIN']}>
           <AdminDashboard />
         </ProtectedRoute>
       } />
       <Route path="/admin/courses" element={
-        <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
+        <ProtectedRoute allowedRoles={['ADMIN']}>
           <CoursesPage />
         </ProtectedRoute>
       } />
       <Route path="/admin/course/new" element={
-        <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
+        <ProtectedRoute allowedRoles={['ADMIN']}>
           <CourseEditor />
         </ProtectedRoute>
       } />
       <Route path="/admin/course/:id/edit" element={
-        <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
+        <ProtectedRoute allowedRoles={['ADMIN']}>
           <CourseEditor />
         </ProtectedRoute>
       } />
       <Route path="/admin/reporting/:courseId" element={
-        <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
+        <ProtectedRoute allowedRoles={['ADMIN']}>
           <ReportingDashboard />
         </ProtectedRoute>
       } />
       <Route path="/admin/course/:courseId/quiz/:quizId" element={
-        <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
+        <ProtectedRoute allowedRoles={['ADMIN']}>
           <QuizBuilder />
         </ProtectedRoute>
       } />
       <Route path="/admin/learners" element={
-        <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
+        <ProtectedRoute allowedRoles={['ADMIN']}>
           <LearnersPage />
         </ProtectedRoute>
       } />
       <Route path="/admin/settings" element={
-        <ProtectedRoute allowedRoles={['ADMIN', 'INSTRUCTOR']}>
+        <ProtectedRoute allowedRoles={['ADMIN']}>
           <SettingsPage />
         </ProtectedRoute>
       } />

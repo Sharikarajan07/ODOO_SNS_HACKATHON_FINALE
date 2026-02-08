@@ -18,7 +18,7 @@ router.get('/', authenticate, async (req, res) => {
         visibility: { in: ['PUBLIC', 'RESTRICTED'] }
       };
     }
-    // Admin and Instructor see all courses
+    // Admin sees all courses
 
     const courses = await prisma.course.findMany({
       where,
@@ -113,9 +113,7 @@ router.get('/:id', authenticate, async (req, res) => {
     }
 
     // Check access
-    if (course.published === false &&
-      req.user.role !== 'ADMIN' &&
-      req.user.role !== 'INSTRUCTOR') {
+    if (course.published === false && req.user.role !== 'ADMIN') {
       return res.status(403).json({ error: 'Course not published' });
     }
 
@@ -135,8 +133,8 @@ router.get('/:id', authenticate, async (req, res) => {
   }
 });
 
-// Create course (Admin/Instructor only)
-router.post('/', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res) => {
+// Create course (Admin only)
+router.post('/', authenticate, authorize('ADMIN'), async (req, res) => {
   try {
     const { title, description, tags, image, visibility, accessRule, price, website, responsibleId } = req.body;
 
@@ -165,8 +163,8 @@ router.post('/', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res
   }
 });
 
-// Update course (Admin/Instructor only)
-router.put('/:id', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res) => {
+// Update course (Admin only)
+router.put('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
   try {
     const courseId = parseInt(req.params.id);
     const { title, description, tags, image, visibility, accessRule, published, price, website, responsibleId } = req.body;
@@ -195,7 +193,7 @@ router.put('/:id', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, r
 });
 
 // Publish/Unpublish course
-router.patch('/:id/publish', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res) => {
+router.patch('/:id/publish', authenticate, authorize('ADMIN'), async (req, res) => {
   try {
     const courseId = parseInt(req.params.id);
     const { published } = req.body;

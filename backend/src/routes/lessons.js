@@ -55,8 +55,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create lesson (Admin/Instructor only)
-router.post('/', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res) => {
+// Create lesson (Admin only)
+router.post('/', authenticate, authorize('ADMIN'), async (req, res) => {
   try {
     const { courseId, title, type, contentUrl, description, order, attachments, responsibleId, duration, allowDownload } = req.body;
 
@@ -94,8 +94,8 @@ router.post('/', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res
   }
 });
 
-// Update lesson (Admin/Instructor only)
-router.put('/:id', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res) => {
+// Update lesson (Admin only)
+router.put('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
   try {
     const lessonId = parseInt(req.params.id);
     const { title, type, contentUrl, description, order, duration, allowDownload, responsibleId, attachments } = req.body;
@@ -149,8 +149,8 @@ router.put('/:id', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, r
   }
 });
 
-// Delete lesson (Admin/Instructor only)
-router.delete('/:id', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res) => {
+// Delete lesson (Admin only)
+router.delete('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
   try {
     const lessonId = parseInt(req.params.id);
 
@@ -165,8 +165,8 @@ router.delete('/:id', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req
   }
 });
 
-// Add attachment to lesson (Admin/Instructor only)
-router.post('/:id/attachments', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res) => {
+// Add attachment to lesson (Admin only)
+router.post('/:id/attachments', authenticate, authorize('ADMIN'), async (req, res) => {
   try {
     const lessonId = parseInt(req.params.id);
     const { type, url } = req.body;

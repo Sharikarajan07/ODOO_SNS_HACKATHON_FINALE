@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Home, BookOpen, Search, User, LogOut, Award, TrendingUp, X } from 'lucide-react'
+import { Home, BookOpen, Search, LogOut, Award, TrendingUp, X } from 'lucide-react'
 
 const LearnerSidebar = ({ isOpen, onClose }) => {
   const navigate = useNavigate()
@@ -41,12 +41,6 @@ const LearnerSidebar = ({ isOpen, onClose }) => {
       label: 'Achievements',
       path: '/learner/achievements',
       active: location.pathname === '/learner/achievements'
-    },
-    {
-      icon: User,
-      label: 'Profile',
-      path: '/learner/profile',
-      active: location.pathname === '/learner/profile'
     }
   ]
 
@@ -82,35 +76,47 @@ const LearnerSidebar = ({ isOpen, onClose }) => {
         </div>
 
       {/* User Info */}
-      <div className="p-4 border-b border-gray-200 bg-gradient-to-br from-indigo-50 to-violet-50">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">
+      <div className="p-5 border-b border-gray-200/50 bg-gradient-to-br from-indigo-50 via-purple-50 to-violet-50 relative overflow-hidden group">
+        {/* Animated background effect */}
+        <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/50 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        
+        <div className="flex items-center space-x-3 relative z-10">
+          <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 via-purple-600 to-violet-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg transform group-hover:scale-105 group-hover:rotate-3 transition-all duration-300 ring-4 ring-white/50">
             {user?.name?.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 truncate">{user?.name}</p>
-            <p className="text-xs text-indigo-600 font-medium uppercase tracking-wide">LEARNER</p>
+            <p className="text-sm font-bold text-gray-900 truncate">{user?.name}</p>
+            <div className="flex items-center space-x-1.5 mt-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <p className="text-xs text-indigo-700 font-bold uppercase tracking-wider">LEARNER</p>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Navigation Menu */}
-      <nav className="flex-1 overflow-y-auto py-4 px-3">
-        <div className="space-y-1">
+      <nav className="flex-1 overflow-y-auto py-6 px-3">
+        <div className="space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon
             return (
               <button
                 key={item.path}
                 onClick={() => handleNavigate(item.path)}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                className={`w-full flex items-center space-x-3 px-4 py-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${
                   item.active
-                    ? 'bg-indigo-50 text-indigo-700 font-medium shadow-sm border border-indigo-100'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold shadow-lg shadow-indigo-200/50 scale-105'
+                    : 'text-gray-600 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 hover:text-gray-900 hover:shadow-md'
                 }`}
               >
-                <Icon size={20} className={item.active ? 'text-indigo-600' : 'text-gray-400'} />
-                <span>{item.label}</span>
+                {item.active && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                )}
+                <Icon size={20} className={`relative z-10 transition-transform duration-300 group-hover:scale-110 ${item.active ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600'}`} />
+                <span className="relative z-10">{item.label}</span>
+                {item.active && (
+                  <div className="absolute right-3 w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+                )}
               </button>
             )
           })}
@@ -118,12 +124,12 @@ const LearnerSidebar = ({ isOpen, onClose }) => {
       </nav>
 
       {/* Logout Button */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-gray-200/50 bg-gradient-to-br from-gray-50 to-white">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center space-x-3 px-4 py-3 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+          className="w-full flex items-center space-x-3 px-4 py-3.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-300 group font-medium border-2 border-transparent hover:border-red-200 hover:shadow-md"
         >
-          <LogOut size={20} />
+          <LogOut size={20} className="transform group-hover:scale-110 group-hover:-translate-x-1 transition-all duration-300" />
           <span>Logout</span>
         </button>
       </div>

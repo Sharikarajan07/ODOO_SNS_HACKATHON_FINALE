@@ -88,7 +88,7 @@ const CourseDetail = () => {
   }
 
   const handleBack = () => {
-    if (user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR') {
+    if (user?.role === 'ADMIN') {
       navigate('/admin/dashboard')
     } else {
       navigate('/learner/dashboard')

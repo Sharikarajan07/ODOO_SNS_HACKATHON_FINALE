@@ -373,9 +373,6 @@ const CourseEditor = () => {
             <Button variant="outline" onClick={handleAddAttendees}>
               <Users size={16} className="mr-2 inline" /> Add Attendees
             </Button>
-            <Button variant="outline" onClick={() => toast.info('Opening contact wizard...')}>
-              <Share2 size={16} className="mr-2 inline" /> Contact
-            </Button>
             <Button variant="outline" onClick={handlePreview}>
               <Eye size={16} className="mr-2 inline" /> Website
             </Button>

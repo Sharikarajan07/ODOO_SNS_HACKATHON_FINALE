@@ -8,7 +8,7 @@ const Layout = ({ children, title }) => {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'INSTRUCTOR'
+  const isAdmin = user?.role === 'ADMIN'
   // Check if we are in an admin route to enforce sidebar
   const isAdminRoute = location.pathname.startsWith('/admin')
 

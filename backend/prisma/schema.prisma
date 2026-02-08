@@ -187,7 +187,6 @@ model Review {
 
 enum UserRole {
   ADMIN
-  INSTRUCTOR
   LEARNER
   GUEST
 }

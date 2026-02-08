@@ -1,250 +1,125 @@
 import { useState } from 'react'
 import Layout from '../components/Layout'
 import { Card, Button, Badge } from '../components/ui'
-import { Settings, User, Bell, Lock, Globe, Database, Mail } from 'lucide-react'
+import { User } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
+import api from '../services/api'
 
 const SettingsPage = () => {
-  const { user } = useAuth()
-  const [activeSection, setActiveSection] = useState('general')
+  const { user, setUser } = useAuth()
+  const toast = useToast()
+  const [formData, setFormData] = useState({
+    name: user?.name || '',
+    email: user?.email || ''
+  })
+  const [loading, setLoading] = useState(false)
 
-  const sections = [
-    { id: 'general', label: 'General', icon: Settings },
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'security', label: 'Security', icon: Lock },
-    { id: 'email', label: 'Email', icon: Mail },
-    { id: 'system', label: 'System', icon: Database },
-  ]
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    })
+  }
+
+  const handleSave = async () => {
+    setLoading(true)
+    try {
+      const response = await api.put(`/users/${user.id}`, formData)
+      const updatedUser = response.data
+      setUser(updatedUser)
+      localStorage.setItem('user', JSON.stringify(updatedUser))
+      toast.success('Profile updated successfully')
+    } catch (error) {
+      console.error('Failed to update profile', error)
+      toast.error('Failed to update profile')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCancel = () => {
+    setFormData({
+      name: user?.name || '',
+      email: user?.email || ''
+    })
+  }
 
   return (
     <Layout title="Settings">
-      <div className="space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
-          <p className="text-gray-600 mt-1">Manage your account and system preferences</p>
+        <div className="relative">
+          <h2 className="text-3xl font-black text-gray-900 tracking-tight">Settings</h2>
+          <p className="text-gray-500 mt-1.5 text-sm">Manage your account and system preferences</p>
+          <div className="absolute -z-10 -left-4 -top-2 w-24 h-24 bg-indigo-100 rounded-full blur-3xl opacity-20"></div>
         </div>
 
-        <div className="grid grid-cols-12 gap-6">
-          {/* Sidebar Navigation */}
-          <div className="col-span-3">
-            <Card className="p-4">
-              <nav className="space-y-1">
-                {sections.map((section) => (
-                  <button
-                    key={section.id}
-                    onClick={() => setActiveSection(section.id)}
-                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
-                      activeSection === section.id
-                        ? 'bg-indigo-50 text-indigo-700 font-medium'
-                        : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <section.icon size={18} />
-                    <span>{section.label}</span>
-                  </button>
-                ))}
-              </nav>
-            </Card>
-          </div>
-
-          {/* Main Content */}
-          <div className="col-span-9">
-            <Card className="p-6">
-              {activeSection === 'general' && (
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">General Settings</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Platform Name
-                        </label>
-                        <input
-                          type="text"
-                          defaultValue="LearnSphere"
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Time Zone
-                        </label>
-                        <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                          <option>UTC</option>
-                          <option>America/New_York</option>
-                          <option>Europe/London</option>
-                          <option>Asia/Kolkata</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Language
-                        </label>
-                        <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                          <option>English</option>
-                          <option>Spanish</option>
-                          <option>French</option>
-                          <option>German</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeSection === 'profile' && (
-                <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Profile Settings</h3>
-                  <div className="flex items-center space-x-6 mb-6">
-                    <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-bold text-2xl">
-                      {user?.name?.charAt(0)}
-                    </div>
-                    <div>
-                      <Button size="sm">Change Avatar</Button>
-                      <p className="text-sm text-gray-500 mt-2">JPG, PNG or GIF. Max 2MB.</p>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                      <input
-                        type="text"
-                        defaultValue={user?.name}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                      <input
-                        type="email"
-                        defaultValue={user?.email}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
-                      <Badge variant="secondary">{user?.role}</Badge>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeSection === 'notifications' && (
-                <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Notification Preferences</h3>
-                  <div className="space-y-4">
-                    {[
-                      'Email notifications for new enrollments',
-                      'Course completion alerts',
-                      'Weekly progress reports',
-                      'System updates and maintenance',
-                      'New course announcements'
-                    ].map((item, index) => (
-                      <div key={index} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
-                        <span className="text-gray-700">{item}</span>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" defaultChecked={index < 3} className="sr-only peer" />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {activeSection === 'security' && (
-                <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Security Settings</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Current Password
-                      </label>
-                      <input
-                        type="password"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        New Password
-                      </label>
-                      <input
-                        type="password"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Confirm New Password
-                      </label>
-                      <input
-                        type="password"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeSection === 'email' && (
-                <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Email Configuration</h3>
-                  <p className="text-gray-600">Configure email server settings for sending notifications and alerts.</p>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">SMTP Server</label>
-                      <input
-                        type="text"
-                        placeholder="smtp.example.com"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Port</label>
-                      <input
-                        type="number"
-                        placeholder="587"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeSection === 'system' && (
-                <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">System Information</h3>
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Version</span>
-                      <span className="font-medium">1.0.0</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Database</span>
-                      <Badge variant="success">Connected</Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">API Status</span>
-                      <Badge variant="success">Healthy</Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Last Backup</span>
-                      <span className="font-medium">2 hours ago</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end space-x-3">
-                <Button variant="outline">Cancel</Button>
-                <Button>Save Changes</Button>
+        {/* Profile Settings Card */}
+        <Card className="p-8 bg-white rounded-3xl shadow-lg border border-gray-100">
+          <div className="space-y-6">
+            <h3 className="text-xl font-black text-gray-900 mb-6">Profile Settings</h3>
+            
+            {/* Avatar Section */}
+            <div className="flex items-center space-x-6 mb-8 p-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100">
+              <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg ring-4 ring-indigo-100">
+                {user?.name?.charAt(0).toUpperCase()}
               </div>
-            </Card>
+              <div>
+                <h4 className="text-xl font-bold text-gray-900">{user?.name}</h4>
+                <p className="text-sm text-gray-500 font-medium mt-1">{user?.email}</p>
+              </div>
+            </div>
+
+            {/* Form Fields */}
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Full Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Email</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Role</label>
+                <Badge variant="secondary" className="text-sm py-1.5 px-4 bg-indigo-50 text-indigo-700 font-bold border border-indigo-200 rounded-xl">
+                  {user?.role}
+                </Badge>
+              </div>
+            </div>
           </div>
-        </div>
+
+          {/* Action Buttons */}
+          <div className="mt-8 pt-6 border-t-2 border-gray-100 flex justify-end space-x-3">
+            <Button 
+              variant="outline" 
+              onClick={handleCancel}
+              className="border-2 hover:bg-gray-50 rounded-xl font-bold px-6"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSave}
+              disabled={loading}
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 transition-all duration-300 rounded-xl font-bold px-6"
+            >
+              {loading ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
+        </Card>
       </div>
     </Layout>
   )

@@ -118,7 +118,6 @@ const Register = () => {
             onChange={handleChange}
             options={[
               { value: 'LEARNER', label: 'Learner' },
-              { value: 'INSTRUCTOR', label: 'Instructor' },
               { value: 'ADMIN', label: 'Admin' }
             ]}
           />

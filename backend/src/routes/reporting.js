@@ -4,8 +4,8 @@ const { authenticate, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Get dashboard stats (Admin/Instructor only)
-router.get('/dashboard', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res) => {
+// Get dashboard stats (Admin only)
+router.get('/dashboard', authenticate, authorize('ADMIN'), async (req, res) => {
   try {
     const totalCourses = await prisma.course.count();
     const totalLearners = await prisma.user.count({ where: { role: 'LEARNER' } });
@@ -40,8 +40,8 @@ router.get('/dashboard', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (
   }
 });
 
-// Get course analytics (Admin/Instructor only)
-router.get('/course/:courseId', authenticate, authorize('ADMIN', 'INSTRUCTOR'), async (req, res) => {
+// Get course analytics (Admin only)
+router.get('/course/:courseId', authenticate, authorize('ADMIN'), async (req, res) => {
   try {
     const courseId = parseInt(req.params.courseId);
 
