@@ -1,81 +1,100 @@
-# LearnSphere - eLearning Platform MVP
+# LearnSphere - eLearning Platform
 
-A full-stack eLearning platform with role-based access for Admins, Instructors, and Learners. Built for production-quality demonstration at national-level hackathon.
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
+[![Node.js](https://img.shields.io/badge/Node.js-16+-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![React](https://img.shields.io/badge/React-18+-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Next.js](https://img.shields.io/badge/Next.js-16+-000000?logo=next.js&logoColor=white)](https://nextjs.org/)
+
+A full-stack eLearning platform with role-based access for **Admins**, **Instructors**, and **Learners**. Built for production-quality demonstration at national-level hackathon.
+
+---
 
 ## 🚀 Tech Stack
 
-**Frontend:**
-- React 18
-- Vite
-- React Router
-- Tailwind CSS
-- Axios
+| Layer | Technologies |
+|-------|--------------|
+| **Frontend (Next.js)** | Next.js 16, React 19, Tailwind CSS, Radix UI, shadcn/ui, React Hook Form, Zod |
+| **Frontend (Vite)** | React 18, Vite 5, React Router, Axios, Tailwind CSS |
+| **Backend** | Node.js, Express.js, Prisma ORM, PostgreSQL |
+| **Authentication** | JWT, bcryptjs |
+| **Validation** | express-validator, Zod |
 
-**Backend:**
-- Node.js
-- Express.js
-- PostgreSQL
-- Prisma ORM
-- JWT Authentication
-- bcryptjs
+---
 
 ## 📋 Features
 
-### Admin/Instructor Features
-- ✅ Course creation and management
-- ✅ Lesson management (Video, Document, Image)
-- ✅ Quiz builder with multiple questions
-- ✅ Course publishing/unpublishing
-- ✅ Analytics & reporting dashboard
-- ✅ Learner progress tracking
+### 👨‍💼 Admin/Instructor Features
+| Feature | Status |
+|---------|--------|
+| Course creation and management | ✅ |
+| Lesson management (Video, Document, Image) | ✅ |
+| Quiz builder with multiple questions | ✅ |
+| Course publishing/unpublishing | ✅ |
+| Analytics & reporting dashboard | ✅ |
+| Learner progress tracking | ✅ |
 
-### Learner Features
-- ✅ Course browsing and enrollment
-- ✅ Full-screen lesson player
-- ✅ Progress tracking
-- ✅ Quiz taking with multiple attempts
-- ✅ Points and badge gamification
-- ✅ Course reviews and ratings
+### 🎓 Learner Features
+| Feature | Status |
+|---------|--------|
+| Course browsing and enrollment | ✅ |
+| Full-screen lesson player | ✅ |
+| Progress tracking | ✅ |
+| Quiz taking with multiple attempts | ✅ |
+| Points and badge gamification | ✅ |
+| Course reviews and ratings | ✅ |
 
-### Core Functionality
-- ✅ JWT-based authentication
-- ✅ Role-based authorization
-- ✅ Course visibility controls
-- ✅ Progress percentage calculation
-- ✅ Gamification system
-- ✅ Reporting and analytics
+### 🔧 Core Functionality
+| Feature | Status |
+|---------|--------|
+| JWT-based authentication | ✅ |
+| Role-based authorization | ✅ |
+| Course visibility controls | ✅ |
+| Progress percentage calculation | ✅ |
+| Gamification system | ✅ |
+| Reporting and analytics | ✅ |
+
+---
 
 ## 🛠️ Setup Instructions
 
 ### Prerequisites
-- Node.js 16+ installed
-- PostgreSQL installed and running
-- npm or yarn package manager
 
-### 1. Database Setup
+- **Node.js** 16+ ([Download](https://nodejs.org/))
+- **PostgreSQL** 15+ ([Download](https://www.postgresql.org/download/))
+- **pnpm** (recommended) or npm
+
+### 1. Clone the Repository
 
 ```bash
-# Install PostgreSQL (if not installed)
-# Windows: Download from https://www.postgresql.org/download/windows/
-# Or use existing PostgreSQL instance
+git clone https://github.com/Sharikarajan07/ODOO_SNS_HACKATHON_FINALE.git
+cd ODOO_SNS_HACKATHON_FINALE
+```
 
-# Create database
+### 2. Database Setup
+
+```sql
+-- Connect to PostgreSQL
 psql -U postgres
+
+-- Create database
 CREATE DATABASE learnsphere;
 \q
 ```
 
-### 2. Backend Setup
+### 3. Backend Setup
 
 ```bash
-# Navigate to backend directory
 cd backend
 
 # Install dependencies
 npm install
 
-# Update .env file with your database credentials
-# DATABASE_URL="postgresql://postgres:yourpassword@localhost:5432/learnsphere?schema=public"
+# Configure environment variables
+# Edit .env file with your database credentials:
+# DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/learnsphere?schema=public"
+# JWT_SECRET="learnsphere-secret-key-2026"
+# PORT=5000
 
 # Generate Prisma client
 npm run prisma:generate
@@ -87,23 +106,37 @@ npm run prisma:migrate
 npm run dev
 ```
 
-Backend will run on http://localhost:5000
+> Backend runs at: http://localhost:5000
 
-### 3. Frontend Setup
+### 4. Frontend Setup (Choose One)
+
+#### Option A: Next.js Frontend (Root)
 
 ```bash
-# Open new terminal
-# Navigate to frontend directory
+# From project root
+pnpm install  # or npm install
+pnpm dev      # or npm run dev
+```
+
+> Frontend runs at: http://localhost:3000
+
+#### Option B: Vite Frontend
+
+```bash
 cd frontend
 
-# Install dependencies
 npm install
-
-# Start frontend development server
 npm run dev
 ```
 
-Frontend will run on http://localhost:3000
+> Frontend runs at: http://localhost:3000
+
+### 5. Quick Start Script (Windows)
+
+```powershell
+# From project root
+.\start-dev.ps1
+```
 
 ## 🎯 Demo Flow (3-minute demonstration)
 
@@ -144,135 +177,168 @@ Frontend will run on http://localhost:3000
 3. Click on course analytics
 4. Show learner progress tracking
 
+---
+
 ## 📁 Project Structure
 
 ```
 ODOO_SNS_HACKATHON_FINALE/
-├── backend/
+├── app/                           # Next.js App Router
+│   ├── layout.tsx                 # Root layout
+│   ├── page.tsx                   # Home page
+│   └── globals.css                # Global styles
+├── components/                    # React components
+│   ├── ui/                        # shadcn/ui components
+│   ├── app-shell.tsx              # Main app shell
+│   ├── course-detail.tsx          # Course details view
+│   ├── course-editor.tsx          # Course creation/editing
+│   ├── courses-dashboard.tsx      # Admin dashboard
+│   ├── learner-courses.tsx        # Learner course view
+│   ├── lesson-player.tsx          # Lesson viewer
+│   ├── login-form.tsx             # Authentication
+│   ├── quiz-ui.tsx                # Quiz interface
+│   └── reporting-dashboard.tsx    # Analytics
+├── lib/                           # Utilities and types
+│   ├── auth-context.tsx           # Auth state management
+│   ├── data.ts                    # Data helpers
+│   ├── types.ts                   # TypeScript types
+│   └── utils.ts                   # Utility functions
+├── hooks/                         # Custom React hooks
+├── backend/                       # Express.js API
 │   ├── prisma/
 │   │   └── schema.prisma          # Database schema
 │   ├── src/
-│   │   ├── config/
-│   │   │   └── database.js        # Prisma client
-│   │   ├── middleware/
-│   │   │   └── auth.js            # JWT authentication
-│   │   ├── routes/
-│   │   │   ├── auth.js            # Authentication routes
-│   │   │   ├── courses.js         # Course management
-│   │   │   ├── lessons.js         # Lesson management
-│   │   │   ├── quizzes.js         # Quiz & attempts
-│   │   │   ├── enrollments.js     # Course enrollments
-│   │   │   ├── progress.js        # Progress tracking
-│   │   │   ├── reviews.js         # Reviews & ratings
-│   │   │   └── reporting.js       # Analytics
+│   │   ├── config/                # Configuration
+│   │   ├── middleware/            # Auth middleware
+│   │   ├── routes/                # API routes
 │   │   └── server.js              # Express server
-│   ├── .env                       # Environment variables
 │   └── package.json
-│
-└── frontend/
-    ├── src/
-    │   ├── components/
-    │   │   ├── Layout.jsx         # Main layout wrapper
-    │   │   └── ui.jsx             # Reusable UI components
-    │   ├── context/
-    │   │   └── AuthContext.jsx    # Auth state management
-    │   ├── pages/
-    │   │   ├── Login.jsx          # Login page
-    │   │   ├── Register.jsx       # Registration page
-    │   │   ├── AdminDashboard.jsx # Admin course management
-    │   │   ├── CourseEditor.jsx   # Course creation/editing
-    │   │   ├── ReportingDashboard.jsx # Analytics
-    │   │   ├── LearnerDashboard.jsx   # Learner home
-    │   │   ├── CourseDetail.jsx   # Course details & enrollment
-    │   │   ├── LessonPlayer.jsx   # Full-screen lesson viewer
-    │   │   └── QuizPage.jsx       # Quiz interface
-    │   ├── services/
-    │   │   └── api.js             # Axios API client
-    │   ├── App.jsx                # Main app & routing
-    │   └── main.jsx               # Entry point
-    ├── index.html
-    ├── vite.config.js
-    └── package.json
+├── frontend/                      # Vite React app (alternative)
+│   ├── src/                       # React source
+│   └── package.json
+├── package.json                   # Next.js dependencies
+├── tailwind.config.ts             # Tailwind configuration
+└── start-dev.ps1                  # Dev startup script
 ```
+
+---
 
 ## 🔑 API Endpoints
 
 ### Authentication
-- POST `/api/auth/register` - Register new user
-- POST `/api/auth/login` - Login user
-- GET `/api/auth/me` - Get current user
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | Register new user |
+| POST | `/api/auth/login` | Login user |
+| GET | `/api/auth/me` | Get current user |
 
 ### Courses
-- GET `/api/courses` - Get all courses
-- GET `/api/courses/:id` - Get course details
-- POST `/api/courses` - Create course (Admin/Instructor)
-- PUT `/api/courses/:id` - Update course
-- PATCH `/api/courses/:id/publish` - Publish/unpublish
-- DELETE `/api/courses/:id` - Delete course
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/courses` | Get all courses |
+| GET | `/api/courses/:id` | Get course details |
+| POST | `/api/courses` | Create course (Admin/Instructor) |
+| PUT | `/api/courses/:id` | Update course |
+| PATCH | `/api/courses/:id/publish` | Publish/unpublish |
+| DELETE | `/api/courses/:id` | Delete course |
 
 ### Lessons
-- GET `/api/lessons/course/:courseId` - Get course lessons
-- POST `/api/lessons` - Create lesson
-- PUT `/api/lessons/:id` - Update lesson
-- DELETE `/api/lessons/:id` - Delete lesson
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/lessons/course/:courseId` | Get course lessons |
+| POST | `/api/lessons` | Create lesson |
+| PUT | `/api/lessons/:id` | Update lesson |
+| DELETE | `/api/lessons/:id` | Delete lesson |
 
 ### Quizzes
-- GET `/api/quizzes/course/:courseId` - Get course quiz
-- POST `/api/quizzes` - Create quiz
-- POST `/api/quizzes/:quizId/questions` - Add question
-- POST `/api/quizzes/:quizId/attempt` - Submit quiz attempt
-- GET `/api/quizzes/:quizId/attempts` - Get user attempts
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/quizzes/course/:courseId` | Get course quiz |
+| POST | `/api/quizzes` | Create quiz |
+| POST | `/api/quizzes/:quizId/questions` | Add question |
+| POST | `/api/quizzes/:quizId/attempt` | Submit quiz attempt |
+| GET | `/api/quizzes/:quizId/attempts` | Get user attempts |
 
 ### Enrollments & Progress
-- POST `/api/enrollments` - Enroll in course
-- GET `/api/enrollments/my` - Get user enrollments
-- POST `/api/progress/lesson/:lessonId` - Update lesson progress
-- GET `/api/progress/course/:courseId` - Get course progress
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/enrollments` | Enroll in course |
+| GET | `/api/enrollments/my` | Get user enrollments |
+| POST | `/api/progress/lesson/:lessonId` | Update lesson progress |
+| GET | `/api/progress/course/:courseId` | Get course progress |
 
 ### Reviews & Reporting
-- POST `/api/reviews` - Add review
-- GET `/api/reviews/course/:courseId` - Get course reviews
-- GET `/api/reporting/dashboard` - Admin dashboard stats
-- GET `/api/reporting/course/:courseId` - Course analytics
-- GET `/api/reporting/learner/dashboard` - Learner stats
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/reviews` | Add review |
+| GET | `/api/reviews/course/:courseId` | Get course reviews |
+| GET | `/api/reporting/dashboard` | Admin dashboard stats |
+| GET | `/api/reporting/course/:courseId` | Course analytics |
+| GET | `/api/reporting/learner/dashboard` | Learner stats |
+
+---
 
 ## 🎨 UI Highlights
 
-- Clean, modern SaaS-style design
-- Responsive layout (mobile-friendly)
-- Role-based navigation
+- Clean, modern SaaS-style design with shadcn/ui components
+- Fully responsive layout (mobile-friendly)
+- Role-based navigation and dashboards
 - Real-time progress tracking
-- Toast notifications for actions
-- Full-screen lesson player
-- One-question-per-page quiz UI
-- Kanban/List view toggle for courses
+- Toast notifications for user actions
+- Full-screen immersive lesson player
+- One-question-per-page quiz interface
+- Kanban/List view toggle for course management
+
+---
 
 ## 🔒 Security Features
 
-- Password hashing with bcryptjs
-- JWT token authentication
-- Role-based route protection
-- Input validation
-- SQL injection prevention (Prisma)
+| Feature | Implementation |
+|---------|----------------|
+| Password Hashing | bcryptjs |
+| Authentication | JWT tokens |
+| Authorization | Role-based middleware |
+| Input Validation | express-validator, Zod |
+| SQL Injection Prevention | Prisma ORM |
+
+---
 
 ## 📊 Database Schema
 
-- **User** - User accounts with roles
-- **Course** - Course information
-- **Lesson** - Course lessons with order
-- **LessonAttachment** - Additional resources
-- **Quiz** - Course quizzes
-- **QuizQuestion** - Quiz questions
-- **QuizOption** - Answer options
-- **QuizAttempt** - User attempts & scores
-- **Enrollment** - User-course relationships
-- **Progress** - Lesson completion tracking
-- **Points** - Gamification points & badges
-- **Review** - Course reviews & ratings
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│      User       │────<│   Enrollment    │>────│     Course      │
+│                 │     └─────────────────┘     │                 │
+│  - id           │                             │  - id           │
+│  - name         │     ┌─────────────────┐     │  - title        │
+│  - email        │────<│    Progress     │     │  - published    │
+│  - password     │     └─────────────────┘     │  - visibility   │
+│  - role         │                             │                 │
+└─────────────────┘     ┌─────────────────┐     └─────────────────┘
+        │               │     Lesson      │>────────────┘
+        │               │                 │
+        │               │  - type         │
+        │               │  - contentUrl   │
+        │               │  - order        │
+        │               └─────────────────┘
+        │
+        │     ┌─────────────────┐     ┌─────────────────┐
+        └────<│   QuizAttempt   │>────│      Quiz       │
+              │                 │     │                 │
+              │  - score        │     │  - questions    │
+              │  - attempt #    │     │  - rewards      │
+              └─────────────────┘     └─────────────────┘
+```
+
+**Models:** User, Course, Lesson, LessonAttachment, Quiz, QuizQuestion, QuizOption, QuizAttempt, Enrollment, Progress, Points, Review
+
+---
 
 ## 🐛 Troubleshooting
 
-### Database Connection Issues
+<details>
+<summary><b>Database Connection Issues</b></summary>
+
 ```bash
 # Check PostgreSQL is running
 # Windows: Check Services -> PostgreSQL
@@ -281,37 +347,55 @@ ODOO_SNS_HACKATHON_FINALE/
 psql -U postgres -d learnsphere
 ```
 
-### Port Already in Use
-```bash
-# Backend (Port 5000)
-# Change PORT in backend/.env
+</details>
 
-# Frontend (Port 3000)
-# Change port in frontend/vite.config.js
+<details>
+<summary><b>Port Already in Use</b></summary>
+
+```bash
+# Backend (Port 5000) - Change PORT in backend/.env
+# Frontend (Port 3000) - Change port in vite.config.js or next.config.mjs
 ```
 
-### Prisma Issues
+</details>
+
+<details>
+<summary><b>Prisma Issues</b></summary>
+
 ```bash
 cd backend
 npx prisma generate
 npx prisma migrate reset --force
 ```
 
-## 🚦 Quick Test Credentials
+</details>
+
+---
+
+## 🚦 Test Credentials
 
 After initial setup, you can create test accounts:
 
-**Admin:**
-- Email: admin@test.com
-- Password: admin123
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | admin@test.com | admin123 |
+| Instructor | instructor@test.com | instructor123 |
+| Learner | learner@test.com | learner123 |
 
-**Instructor:**
-- Email: instructor@test.com
-- Password: instructor123
+---
 
-**Learner:**
-- Email: learner@test.com
-- Password: learner123
+## 🎮 Gamification System
+
+| Badge | Points Required |
+|-------|----------------|
+| 🌱 Beginner | 0 - 49 |
+| ⭐ Intermediate | 50 - 199 |
+| 🏆 Advanced | 200 - 499 |
+| 👑 Expert | 500+ |
+
+> **Points Earning:** 10 points per 10% quiz score
+
+---
 
 ## 📝 Notes
 
@@ -319,13 +403,19 @@ After initial setup, you can create test accounts:
 - File uploads are via URL (not local upload)
 - Payment system is mocked (FREE/PAID distinction)
 - Time tracking is basic (10-second intervals)
-- Points: 10 points per 10% quiz score
-- Badges: Beginner (0-49), Intermediate (50-199), Advanced (200-499), Expert (500+)
+
+---
 
 ## 🎓 About
 
-Built for national-level hackathon demonstration. Clean, production-ready code following best practices with proper error handling and validation.
+Built for **Odoo SNS Hackathon** - national-level demonstration. Clean, production-ready code following best practices with proper error handling and validation.
+
+### Contributors
+
+- [@Sharikarajan07](https://github.com/Sharikarajan07)
+
+---
 
 ## 📄 License
 
-MIT License - Free to use and modify.
+This project is licensed under the [MIT License](LICENSE) - free to use and modify.
